@@ -71,10 +71,14 @@ int main(void) {
 	// General initialization
 	HAL_Init();
 	SystemClock_Config();
-	Led_Init();
+	GPIO_BEGIN_INIT();
+
+	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 
 	while(1) {
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+		HAL_GPIO_TogglePin(GPIO(LED1));
+		HAL_GPIO_TogglePin(GPIO(LED2));
 		HAL_Delay(100);
 	}
 

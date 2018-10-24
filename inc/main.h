@@ -1,7 +1,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-//#include "uart.h"
+#include "uart.h"
 #include "gpio.h"
 //#include "mpu9265_spi.h"
 
