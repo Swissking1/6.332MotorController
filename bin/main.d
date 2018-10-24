@@ -37,7 +37,8 @@ bin/main.o: src/main.c lib/stm32f413libs/hal_inc/stm32f4xx_hal.h \
  lib/stm32f413libs/hal_inc/stm32f4xx_hal_flash_ex.h \
  lib/stm32f413libs/hal_inc/stm32f4xx_hal_flash_ramfunc.h \
  lib/stm32f413libs/hal_inc/stm32f4xx_hal_pwr.h \
- lib/stm32f413libs/hal_inc/stm32f4xx_hal_pwr_ex.h
+ lib/stm32f413libs/hal_inc/stm32f4xx_hal_pwr_ex.h inc/main.h inc/gpio.h \
+ lib/stm32f413libs/hal_inc/stm32f4xx_hal_gpio_ex.h
 
 lib/stm32f413libs/hal_inc/stm32f4xx_hal.h:
 
@@ -146,3 +147,9 @@ lib/stm32f413libs/hal_inc/stm32f4xx_hal_flash_ramfunc.h:
 lib/stm32f413libs/hal_inc/stm32f4xx_hal_pwr.h:
 
 lib/stm32f413libs/hal_inc/stm32f4xx_hal_pwr_ex.h:
+
+inc/main.h:
+
+inc/gpio.h:
+
+lib/stm32f413libs/hal_inc/stm32f4xx_hal_gpio_ex.h:

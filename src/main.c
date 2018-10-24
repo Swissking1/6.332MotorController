@@ -1,11 +1,12 @@
 #include "stm32f4xx_hal.h"
+#include "main.h"
 
 void SysTick_Handler(void) {
 	HAL_IncTick();
 	HAL_SYSTICK_IRQHandler();
 }
 
-static void _Error_Handler(char *file, int line) {
+void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
 
@@ -70,8 +71,12 @@ int main(void) {
 	// General initialization
 	HAL_Init();
 	SystemClock_Config();
+	Led_Init();
 
-	while(1) {}
+	while(1) {
+		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+		HAL_Delay(100);
+	}
 
     return 0;
 }
