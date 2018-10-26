@@ -64,4 +64,7 @@
 #define LED2_PIN                        GPIO_PIN_7
 #define LED2_PORT                       GPIOB
 
+#define LED3_PIN                        GPIO_PIN_14
+#define LED3_PORT                       GPIOB
+
 #endif //__GPIO_H_

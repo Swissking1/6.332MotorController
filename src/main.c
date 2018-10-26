@@ -1,5 +1,11 @@
-#include "stm32f4xx_hal.h"
+#include <stm32f4xx_hal.h>
 #include "main.h"
+#include <string.h>
+
+
+volatile HAL_StatusTypeDef status;
+UART_Struct uart3;
+char message[50];
 
 void SysTick_Handler(void) {
 	HAL_IncTick();
@@ -10,6 +16,34 @@ void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
 
+
+
+int main(void) {
+	// General initialization
+	HAL_Init();
+	SystemClock_Config();
+	GPIO_BEGIN_INIT();
+	uart_init(&uart3);
+
+	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	char message[] = "Successful initialization\r\n";
+	//uart_transmit(&uart3, &message, sizeof(message), 200);
+	//uart_transmit(&uart3,&d,200);
+
+	while(1) {
+		status = uart_transmit(&uart3,message,10,100);
+		//uart_transmit(&uart3, &message, sizeof(message), 200);
+		//uart_transmit_char(&uart3, &d, 200);
+		HAL_GPIO_TogglePin(GPIO(LED2));
+		if (status==HAL_OK)
+			HAL_GPIO_WritePin(GPIO(LED3),1);
+		//HAL_Delay(500);
+	}
+
+    return 0;
+}
 
 void SystemClock_Config(void) {
 	RCC_OscInitTypeDef RCC_OscInitStruct;
@@ -65,22 +99,4 @@ void SystemClock_Config(void) {
 
 	// SysTick_IRQn interrupt configuration
 	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-
-int main(void) {
-	// General initialization
-	HAL_Init();
-	SystemClock_Config();
-	GPIO_BEGIN_INIT();
-
-	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
-
-	while(1) {
-		HAL_GPIO_TogglePin(GPIO(LED1));
-		HAL_GPIO_TogglePin(GPIO(LED2));
-		HAL_Delay(100);
-	}
-
-    return 0;
 }

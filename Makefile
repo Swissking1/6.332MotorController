@@ -112,10 +112,11 @@ MOUNT = /Volumes/NODE_F413ZH/
 #=============================================================================#
 
 # actual settings
-UART_COM = $(word 1, $(wildcard /dev/tty.usbserial-*) $(wildcard /dev/tty.usbmodem*) $(wildcard /dev/ttyUSB*) $(wildcard /dev/ttyACM*))
+#UART_COM = $(word 1, $(wildcard /dev/tty.usbserial-*) $(wildcard /dev/tty.usbmodem*) $(wildcard /dev/ttyUSB*) $(wildcard /dev/ttyACM*))
+UART_COM=/dev/ttyS12
 UART_BAUD = 115200
 UART_WORDLENGTH = 8
-UART_PARITY = NONE # Must be EVEN, ODD, or NONE
+UART_PARITY = n # Must be EVEN, ODD, or NONE
 
 # defines
 UART_DEFS = -DUART_BAUD=$(UART_BAUD) -DUART_WORDLENGTH=UART_WORDLENGTH_$(UART_WORDLENGTH)B -DUART_PARITY=UART_PARITY_$(UART_PARITY)
@@ -327,8 +328,9 @@ program: all
 #-----------------------------------------------------------------------------#
 
 com:
-	@echo "Starting terminal with baud" $(UART_BAUD)
-	@picocom -b $(UART_BAUD) -d $(UART_WORDLENGTH) -p `echo $(UART_PARITY) | tr A-Z a-z` $(UART_COM)
+	@echo "Starting terminal with baud" $(UART_BAUD) "with port" $(UART_COM)
+	@echo $(UART_BAUD) $(UART_WORDLENGTH) $(UART_PARITY)
+	@picocom -b $(UART_BAUD) -d $(UART_WORDLENGTH) -y `echo $(UART_PARITY) | tr A-Z a-z` $(UART_COM)
 
 #-----------------------------------------------------------------------------#
 # Debug
