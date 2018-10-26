@@ -9,7 +9,7 @@ typedef struct UART_Struct {
   UART_HandleTypeDef handle;
 } UART_Struct;
 
-void uart_init(struct UART_Struct *self);
+void uart_init(struct UART_Struct *self, USART_TypeDef *instance);
 HAL_StatusTypeDef uart_transmit(struct UART_Struct *self, uint8_t *data, size_t size, int delay);
 HAL_StatusTypeDef uart_receive(struct UART_Struct *self, uint8_t *data, size_t size, int delay);
 HAL_StatusTypeDef uart_transmit_char(struct UART_Struct *self, uint8_t *data, int delay);

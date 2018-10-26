@@ -7,10 +7,10 @@ volatile HAL_StatusTypeDef status;
 UART_Struct uart3;
 char message[50];
 
-void SysTick_Handler(void) {
-	HAL_IncTick();
-	HAL_SYSTICK_IRQHandler();
-}
+//void SysTick_Handler(void) {
+//	HAL_IncTick();
+//	HAL_SYSTICK_IRQHandler();
+//}
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -23,13 +23,13 @@ int main(void) {
 	HAL_Init();
 	SystemClock_Config();
 	GPIO_BEGIN_INIT();
-	uart_init(&uart3);
+	uart_init(&uart3, USART6);
 
 	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
 	char message[] = "Successful initialization\r\n";
-	//uart_transmit(&uart3, &message, sizeof(message), 200);
+	uart_transmit(&uart3, &message, sizeof(message), 100);
 	//uart_transmit(&uart3,&d,200);
 
 	while(1) {
