@@ -1,3 +1,4 @@
+
 #ifndef __UART_H
 #define __UART_H
 
@@ -5,13 +6,10 @@
 #include <stm32f4xx_hal.h>
 #include <stm32f4xx_hal_uart.h>
 
-typedef struct UART_Struct {
-  UART_HandleTypeDef handle;
-} UART_Struct;
 
-void uart_init(struct UART_Struct *self, USART_TypeDef *instance);
-HAL_StatusTypeDef uart_transmit(struct UART_Struct *self, uint8_t *data, size_t size, int delay);
-HAL_StatusTypeDef uart_receive(struct UART_Struct *self, uint8_t *data, size_t size, int delay);
-HAL_StatusTypeDef uart_transmit_char(struct UART_Struct *self, uint8_t *data, int delay);
+void uart_init(void);
+HAL_StatusTypeDef uart_transmit(uint8_t *data , int delay);
+HAL_StatusTypeDef uart_receive(char *data,int delay);
+HAL_StatusTypeDef uart_transmit_char(char data, int delay);
 
 #endif //__UART_H
