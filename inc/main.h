@@ -5,6 +5,7 @@
 #include "gpio.h"
 
 void _Error_Handler(char *, int);
+static void MX_TIM1_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 
