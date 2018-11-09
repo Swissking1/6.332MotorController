@@ -19,17 +19,20 @@ int main(void) {
 	GPIO_BEGIN_INIT();
 	uart_init();
 
-	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_RESET);
 	char message[] = "Successful initialization\r\n";
-	char d='d';
 	uart_transmit(&message, HAL_MAX_DELAY);
 
 	while(1) {
-		HAL_GPIO_TogglePin(GPIO(LED2));
-		if (status==HAL_OK)
-			HAL_GPIO_WritePin(GPIO(LED3),1);
+		HAL_GPIO_TogglePin(GPIO(BMSLED1));
+		HAL_GPIO_TogglePin(GPIO(BMSLED2));
+		HAL_GPIO_TogglePin(GPIO(BMSLED3));
+		if (status==HAL_OK) HAL_GPIO_WritePin(GPIO(LED3),1);
 		HAL_Delay(200);
 	}
 

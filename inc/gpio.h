@@ -58,6 +58,15 @@
 /// PIN DEFINITIONS
 // LEDs
 
+#define BMSLED1_PIN                        GPIO_PIN_12
+#define BMSLED1_PORT                       GPIOC
+
+#define BMSLED2_PIN                        GPIO_PIN_10
+#define BMSLED2_PORT                       GPIOC
+
+#define BMSLED3_PIN                        GPIO_PIN_15
+#define BMSLED3_PORT                       GPIOA
+
 #define LED1_PIN                        GPIO_PIN_0
 #define LED1_PORT                       GPIOB
 
