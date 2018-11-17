@@ -7,6 +7,7 @@ volatile HAL_StatusTypeDef status;
 
 TIM_HandleTypeDef htim1;
 
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void _Error_Handler(char *file, int line) {
@@ -109,7 +110,7 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-static void MX_TIM1_Init(void)
+void MX_TIM1_Init(void)
 {
 
   TIM_ClockConfigTypeDef sClockSourceConfig;
@@ -147,7 +148,7 @@ static void MX_TIM1_Init(void)
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 4;
+  sConfigOC.Pulse = 50;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
