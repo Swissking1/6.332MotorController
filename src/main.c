@@ -34,9 +34,9 @@ int main(void) {
 	//HAL_GPIO_WritePin(GPIO(BMSLED3),1);
 	char message[] = "Successful initialization\r\n";
 	uart_transmit(&message, HAL_MAX_DELAY);
-	//Set_PWM_Duty_Cycle(50);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,4);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,1);
+	Set_PWM_Duty_Cycle(21,1);
+	Set_PWM_Duty_Cycle(41,2);
+	Set_PWM_Duty_Cycle(61,3);
 
 	while(1) {
 		//uart_transmit(&message, HAL_MAX_DELAY);
@@ -51,12 +51,22 @@ int main(void) {
 
     return 0;
 }
-void Set_PWM_Duty_Cycle(uint8_t frac) {
-	// the duty cycle for the fan is frac / 100 (should be an integer between 1 and 100)
-	// Ideally we would know exactly how to set this, but for now we have a linear fit from data
-	// Need this because we have to set register for compare not the duty cycle exactly
-  // y = 4*frac
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 4*frac);
+void Set_PWM_Duty_Cycle(uint8_t frac, int channel) {
+	// frac ranges from 1 to 100
+	switch (channel){
+		case 1:
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
+			break;
+		case 2:
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, frac);
+			break;
+		case 3:
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, frac);
+			break;
+		default:
+			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
+			break;
+	}
 }
 
 void SystemClock_Config(void)
@@ -108,10 +118,9 @@ static void MX_TIM1_Init(void)
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
   htim1.Instance = TIM1;
-  uhPrescalerValue = (uint32_t)(SystemCoreClock / 2 / 10000000) - 1;
-  htim1.Init.Prescaler = 80; // Around 20 kHz
+  htim1.Init.Prescaler = 3; 
   htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim1.Init.Period = 5;
+  htim1.Init.Period = 100;  // Around 20 kHz
   htim1.Init.ClockDivision = 0;
   htim1.Init.RepetitionCounter = 0;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
