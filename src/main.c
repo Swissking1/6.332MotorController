@@ -23,24 +23,40 @@ int main(void) {
 	uart_init();
 	MX_TIM1_Init();
 
-	//DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
-	//DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
-	//DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_SET);
+	//DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_SET);
+	//DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(GPIO(BMSLED1),1);
+	//HAL_GPIO_WritePin(GPIO(BMSLED2),1);
+	//HAL_GPIO_WritePin(GPIO(BMSLED3),1);
 	char message[] = "Successful initialization\r\n";
 	uart_transmit(&message, HAL_MAX_DELAY);
+	//Set_PWM_Duty_Cycle(50);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,4);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,1);
 
 	while(1) {
-		HAL_GPIO_TogglePin(GPIO(BMSLED1));
-		HAL_GPIO_TogglePin(GPIO(BMSLED2));
-		HAL_GPIO_TogglePin(GPIO(BMSLED3));
-		if (status==HAL_OK) HAL_GPIO_WritePin(GPIO(LED3),1);
+		//uart_transmit(&message, HAL_MAX_DELAY);
+		HAL_GPIO_TogglePin(GPIO(LED1));
+		HAL_GPIO_TogglePin(GPIO(LED2));
+		HAL_GPIO_TogglePin(GPIO(LED3));
+		//HAL_GPIO_TogglePin(GPIO(BMSLED1));
+		//HAL_GPIO_TogglePin(GPIO(BMSLED2));
+		//HAL_GPIO_TogglePin(GPIO(BMSLED3));
 		HAL_Delay(200);
 	}
 
     return 0;
+}
+void Set_PWM_Duty_Cycle(uint8_t frac) {
+	// the duty cycle for the fan is frac / 100 (should be an integer between 1 and 100)
+	// Ideally we would know exactly how to set this, but for now we have a linear fit from data
+	// Need this because we have to set register for compare not the duty cycle exactly
+  // y = 4*frac
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 4*frac);
 }
 
 void SystemClock_Config(void)
@@ -83,7 +99,6 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-
 static void MX_TIM1_Init(void)
 {
 
@@ -93,10 +108,11 @@ static void MX_TIM1_Init(void)
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 0;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  uhPrescalerValue = (uint32_t)(SystemCoreClock / 2 / 10000000) - 1;
+  htim1.Init.Prescaler = 80; // Around 20 kHz
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
+  htim1.Init.Period = 5;
+  htim1.Init.ClockDivision = 0;
   htim1.Init.RepetitionCounter = 0;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
@@ -114,15 +130,15 @@ static void MX_TIM1_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  //sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  //sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 4;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -157,4 +173,20 @@ static void MX_TIM1_Init(void)
 
   HAL_TIM_MspPostInit(&htim1);
 
+  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
+  {
+    /* PWM generation Error */
+    while(1) {}
+  }
+  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
+  {
+    /* PWM generation Error */
+    while(1) {}
+  }
+
+  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3) != HAL_OK)
+  {
+    /* PWM generation Error */
+    while(1) {}
+  }
 }
