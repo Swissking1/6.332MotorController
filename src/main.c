@@ -7,7 +7,6 @@ volatile HAL_StatusTypeDef status;
 
 TIM_HandleTypeDef htim1;
 
-
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void _Error_Handler(char *file, int line) {
@@ -30,14 +29,11 @@ int main(void) {
 	//DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_SET);
 	//DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_SET);
 	//DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_SET);
-	//HAL_GPIO_WritePin(GPIO(BMSLED1),1);
-	//HAL_GPIO_WritePin(GPIO(BMSLED2),1);
-	//HAL_GPIO_WritePin(GPIO(BMSLED3),1);
 	char message[] = "Successful initialization\r\n";
 	uart_transmit(&message, HAL_MAX_DELAY);
-	Set_PWM_Duty_Cycle(21,1);
-	Set_PWM_Duty_Cycle(41,2);
-	Set_PWM_Duty_Cycle(61,3);
+	Set_PWM_Duty_Cycle(30,1);
+	Set_PWM_Duty_Cycle(50,2);
+	Set_PWM_Duty_Cycle(90,3);
 
 	while(1) {
 		//uart_transmit(&message, HAL_MAX_DELAY);
@@ -52,27 +48,9 @@ int main(void) {
 
     return 0;
 }
-void Set_PWM_Duty_Cycle(uint8_t frac, int channel) {
-	// frac ranges from 1 to 100
-	switch (channel){
-		case 1:
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
-			break;
-		case 2:
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, frac);
-			break;
-		case 3:
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, frac);
-			break;
-		default:
-			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
-			break;
-	}
-}
 
-void SystemClock_Config(void)
-{
 
+void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
@@ -110,93 +88,3 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-void MX_TIM1_Init(void)
-{
-
-  TIM_ClockConfigTypeDef sClockSourceConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_OC_InitTypeDef sConfigOC;
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
-
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 3; 
-  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim1.Init.Period = 100;  // Around 20 kHz
-  htim1.Init.ClockDivision = 0;
-  htim1.Init.RepetitionCounter = 0;
-  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  //sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  //sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 50;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  HAL_TIM_MspPostInit(&htim1);
-
-  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
-  {
-    /* PWM generation Error */
-    while(1) {}
-  }
-  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2) != HAL_OK)
-  {
-    /* PWM generation Error */
-    while(1) {}
-  }
-
-  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3) != HAL_OK)
-  {
-    /* PWM generation Error */
-    while(1) {}
-  }
-}
