@@ -5,9 +5,6 @@
 
 volatile HAL_StatusTypeDef status;
 
-TIM_HandleTypeDef htim1;
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -33,17 +30,23 @@ int main(void) {
 	uart_transmit(&message, HAL_MAX_DELAY);
 	Set_PWM_Duty_Cycle(30,1);
 	Set_PWM_Duty_Cycle(50,2);
-	Set_PWM_Duty_Cycle(90,3);
+	Set_PWM_Duty_Cycle(10,3);
+
+	int d=1;
 
 	while(1) {
 		//uart_transmit(&message, HAL_MAX_DELAY);
-		HAL_GPIO_TogglePin(GPIO(LED1));
-		HAL_GPIO_TogglePin(GPIO(LED2));
-		HAL_GPIO_TogglePin(GPIO(LED3));
+		//HAL_GPIO_TogglePin(GPIO(LED1));
+		//HAL_GPIO_TogglePin(GPIO(LED2));
+		//HAL_GPIO_TogglePin(GPIO(LED3));
+		Set_PWM_Duty_Cycle(d,2);
+		Set_PWM_Duty_Cycle(100-d,1);
+		d++;
+		if(d==100) d=1;
 		//HAL_GPIO_TogglePin(GPIO(BMSLED1));
 		//HAL_GPIO_TogglePin(GPIO(BMSLED2));
 		//HAL_GPIO_TogglePin(GPIO(BMSLED3));
-		HAL_Delay(200);
+		HAL_Delay(100);
 	}
 
     return 0;
