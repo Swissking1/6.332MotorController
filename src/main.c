@@ -8,6 +8,8 @@ volatile HAL_StatusTypeDef status;
 ADC_HandleTypeDef hadc1;
 TIM_HandleTypeDef htim2;
 
+extern TIM_HandleTypeDef htim1;
+
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 
@@ -23,6 +25,10 @@ void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handler for PWM Timer
+ HAL_GPIO_WritePin(GPIO(LED2),1);
+}
+
 int main(void) {
 	// General initialization
 	HAL_Init();
@@ -36,6 +42,9 @@ int main(void) {
 	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
 	//DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_SET);
 	//DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_SET);
 	//DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_SET);
@@ -44,23 +53,28 @@ int main(void) {
 	Set_PWM_Duty_Cycle(30,1);
 	Set_PWM_Duty_Cycle(50,2);
 	Set_PWM_Duty_Cycle(10,3);
+	
+	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
+	HAL_GPIO_WritePin(GPIO(EN2),1);
+	HAL_GPIO_WritePin(GPIO(EN3),1);
+
 	Encoder_Start();
 	Encoder_Read();
+
+	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 
 	int d=1;
 
 	while(1) {
 		//uart_transmit(&message, HAL_MAX_DELAY);
 		//HAL_GPIO_TogglePin(GPIO(LED1));
-		HAL_GPIO_TogglePin(GPIO(LED2));
+		HAL_GPIO_TogglePin(GPIO(LED3));
 		//HAL_GPIO_TogglePin(GPIO(LED3));
 		Set_PWM_Duty_Cycle(d,2);
 		Set_PWM_Duty_Cycle(100-d,1);
 		d++;
 		if(d==100) d=1;
-		//HAL_GPIO_TogglePin(GPIO(BMSLED1));
-		//HAL_GPIO_TogglePin(GPIO(BMSLED2));
-		//HAL_GPIO_TogglePin(GPIO(BMSLED3));
+
 		HAL_Delay(100);
 	}
 

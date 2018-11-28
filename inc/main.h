@@ -10,6 +10,7 @@ void _Error_Handler(char *, int);
 uint32_t Encoder_Read(void);
 void Encoder_Start(void);
 void Encoder_Stop(void);
+float Get_Mech_Pos(void);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 

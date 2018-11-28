@@ -76,4 +76,13 @@
 #define LED3_PIN                        GPIO_PIN_14
 #define LED3_PORT                       GPIOB
 
+#define EN1_PIN                        GPIO_PIN_10
+#define EN1_PORT                       GPIOC
+
+#define EN2_PIN                        GPIO_PIN_11
+#define EN2_PORT                       GPIOC
+
+#define EN3_PIN                        GPIO_PIN_12
+#define EN3_PORT                       GPIOC
+
 #endif //__GPIO_H_
