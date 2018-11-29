@@ -21,6 +21,13 @@ int _ppairs = 10;
 float _offset = 2;
 int rotations = 0;
 
+
+//Current variables
+
+uint32_t ia;
+uint32_t ib;
+uint32_t ic;
+
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
@@ -45,11 +52,6 @@ int main(void) {
 	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
-	//DGPIO_INIT_OUT(BMSLED1,GPIO_PIN_SET);
-	//DGPIO_INIT_OUT(BMSLED2,GPIO_PIN_SET);
-	//DGPIO_INIT_OUT(BMSLED3,GPIO_PIN_SET);
-	char message[] = "Successful initialization\r\n";
-	uart_transmit(&message, HAL_MAX_DELAY);
 	Set_PWM_Duty_Cycle(30,1);
 	Set_PWM_Duty_Cycle(50,2);
 	Set_PWM_Duty_Cycle(10,3);
@@ -63,12 +65,28 @@ int main(void) {
 
 	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 
+	HAL_ADC_Start(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	ic = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	ib = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_Stop(&hadc1);
+
+	ia=-ib-ic;
+
 	int d=1;
 
+	char message[] = "Successful initialization\r\n";
+	char x[20];
+	uart_transmit(&message, HAL_MAX_DELAY);
+
 	while(1) {
-		//uart_transmit(&message, HAL_MAX_DELAY);
 		//HAL_GPIO_TogglePin(GPIO(LED1));
 		HAL_GPIO_TogglePin(GPIO(LED3));
+		
 		//HAL_GPIO_TogglePin(GPIO(LED3));
 		Set_PWM_Duty_Cycle(d,2);
 		Set_PWM_Duty_Cycle(100-d,1);
@@ -191,13 +209,13 @@ static void MX_ADC1_Init(void){
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -210,6 +228,15 @@ static void MX_ADC1_Init(void){
   sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);

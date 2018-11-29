@@ -7,6 +7,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void Set_PWM_Duty_Cycle(uint8_t frac, int channel) {
 	// frac ranges from 1 to 100
+	frac=100-frac; //Inverted PWM b/c of ADCs
 	switch (channel){
 		case 1:
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
@@ -60,8 +61,8 @@ void MX_TIM1_Init(void) {
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 50;
-  //sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  //sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
