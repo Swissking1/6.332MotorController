@@ -24,9 +24,39 @@ int rotations = 0;
 
 //Current variables
 
-uint32_t ia;
-uint32_t ib;
-uint32_t ic;
+uint32_t curr_fb1;
+uint32_t curr_fb3;
+uint32_t curr_offset;
+
+int32_t ia;
+int32_t ib;
+int32_t ic;
+
+int32_t i_alpha;
+int32_t i_beta;
+
+int32_t id;
+int32_t iq;
+int32_t iq_set=5;
+int32_t iq_error;
+int32_t iq_error_sum=0;
+int32_t id_error;
+int32_t id_error_sum=0;
+
+int Ki=10;
+int Kp=5;
+
+//Voltage variables
+uint32_t vq_set;
+uint32_t vd_set;
+
+uint32_t v_alpha;
+uint32_t v_beta;
+
+uint32_t v_a;
+uint32_t v_b;
+uint32_t v_c;
+
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -65,26 +95,52 @@ int main(void) {
 
 	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 
-	HAL_ADC_Start(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	ic = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	ib = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_Stop(&hadc1);
-
-	ia=-ib-ic;
-
-	int d=1;
-
 	char message[] = "Successful initialization\r\n";
 	char x[20];
 	uart_transmit(&message, HAL_MAX_DELAY);
+	
+	//Start polling ADC 
+	HAL_ADC_Start(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_fb1 = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_fb3 = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_Stop(&hadc1);
+
+	ia=curr_fb1-curr_offset; //Should be around 1.558V
+	ic=curr_fb3-curr_offset;
+
+	ib=-ib-ic;
+
+	i_alpha=ia;
+	i_beta=clarke(ia,ib);
+
+	iq=park(i_alpha,i_beta,1);
+	id=park(i_alpha,i_beta,0);
+
+	iq_error = iq_set-iq;
+	iq_error_sum+=iq_error;
+
+	vq_set=iq_error*Kp+iq_error_sum*Ki;
+
+	id_error = -id;
+	id_error_sum+=id_error;
+
+	vd_set=id_error*Kp+id_error_sum*Ki;
+
+	v_alpha=inverse_park(vq_set,vd_set,1);
+	v_beta=inverse_park(vq_set,vd_set,0);
+
+	v_a=v_alpha;
+	v_b=inverse_clarke(v_alpha,v_beta,1);
+	v_c=inverse_clarke(v_alpha,v_beta,0);
+
+	int d=1;
 
 	while(1) {
-		//HAL_GPIO_TogglePin(GPIO(LED1));
 		HAL_GPIO_TogglePin(GPIO(LED3));
 		
 		//HAL_GPIO_TogglePin(GPIO(LED3));
@@ -98,6 +154,35 @@ int main(void) {
 
     return 0;
 }
+
+int32_t park(int32_t i_alpha, int32_t i_beta, bool flag){
+	if(flag)// flag is iq
+		return -i_alpha*sin(Get_Mech_Pos())+i_beta*cos(Get_Mech_Pos());
+	else
+		return i_alpha*cos(Get_Mech_Pos())+i_beta*sin(Get_Mech_Pos());
+
+}
+
+int32_t clarke(int32_t ia, int32_t ib){
+	return 1/sqrt(3)*(ia+2*ib);
+}
+
+
+int32_t inverse_park(int32_t vq_set, int32_t vd_set, bool flag){
+	if(flag)// flag is v_alpha
+		return vd_set*cos(Get_Mech_Pos())-vq_set*sin(Get_Mech_Pos());
+	else
+		return vd_set*sin(Get_Mech_Pos())+vq_set*cos(Get_Mech_Pos());
+}
+
+int32_t inverse_clarke(int32_t v_alpha, int32_t v_beta,bool flag){
+	if(flag) //flag is v_b
+		return -0.5*v_alpha+sqrt(3)/2*v_beta;
+	else
+		return -0.5*v_alpha-sqrt(3)/2*v_beta;
+
+}
+
 
 float Get_Mech_Pos() {                            //returns rotor angle in radians.
     uint32_t raw = Encoder_Read();
@@ -225,7 +310,7 @@ static void MX_ADC1_Init(void){
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
-  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -235,7 +320,7 @@ static void MX_ADC1_Init(void){
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
-  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
