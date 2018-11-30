@@ -43,7 +43,7 @@ int32_t iq_error_sum=0;
 int32_t id_error;
 int32_t id_error_sum=0;
 
-int Ki=10;
+int Ki=100;
 int Kp=5;
 
 //Voltage variables
@@ -58,57 +58,32 @@ uint32_t v_b;
 uint32_t v_c;
 
 
+char oof[]="oof\r\n";
+
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handler for PWM Timer
- HAL_GPIO_WritePin(GPIO(LED2),1);
-}
-
-int main(void) {
-	// General initialization
-	HAL_Init();
-	SystemClock_Config();
-	GPIO_BEGIN_INIT();
-	uart_init();
-	MX_TIM1_Init();
-	MX_ADC1_Init();
-	MX_TIM2_Init();
-
-	DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
-	Set_PWM_Duty_Cycle(30,1);
-	Set_PWM_Duty_Cycle(50,2);
-	Set_PWM_Duty_Cycle(10,3);
 	
-	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
-	HAL_GPIO_WritePin(GPIO(EN2),1);
-	HAL_GPIO_WritePin(GPIO(EN3),1);
-
-	Encoder_Start();
-	Encoder_Read();
-
-	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
-
-	char message[] = "Successful initialization\r\n";
-	char x[20];
-	uart_transmit(&message, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIO(LED2),1);
 	
-	//Start polling ADC 
+	
 	HAL_ADC_Start(&hadc1);
 
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
 	curr_fb1 = HAL_ADC_GetValue(&hadc1);
 
+	HAL_ADC_Start(&hadc1);
+
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
 	curr_fb3 = HAL_ADC_GetValue(&hadc1);
 
+
 	HAL_ADC_Stop(&hadc1);
+	
+	uart_transmit(&oof, HAL_MAX_DELAY);
+	
 
 	ia=curr_fb1-curr_offset; //Should be around 1.558V
 	ic=curr_fb3-curr_offset;
@@ -137,18 +112,87 @@ int main(void) {
 	v_a=v_alpha;
 	v_b=inverse_clarke(v_alpha,v_beta,1);
 	v_c=inverse_clarke(v_alpha,v_beta,0);
+	//uart_transmit((char)v_a, HAL_MAX_DELAY);
+
+	
+	Set_PWM_Duty_Cycle(v_a,1);
+	Set_PWM_Duty_Cycle(v_b,2);
+	Set_PWM_Duty_Cycle(v_c,3);
+	uart_transmit(&oof,HAL_MAX_DELAY);	
+	
+}
+
+int main(void) {
+	// General initialization
+	HAL_Init();
+	SystemClock_Config();
+	GPIO_BEGIN_INIT();
+	uart_init();
+	MX_TIM1_Init();
+	MX_ADC1_Init();
+	MX_TIM2_Init();
+
+	//DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
+	//Set_PWM_Duty_Cycle(30,1);
+	//Set_PWM_Duty_Cycle(50,2);
+	//Set_PWM_Duty_Cycle(10,3);
+	
+	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
+	HAL_GPIO_WritePin(GPIO(EN2),1);
+	HAL_GPIO_WritePin(GPIO(EN3),1);
+
+	Encoder_Start();
+	Encoder_Read();
+
+
+	char message[] = "Successful initialization\r\n";
+	uart_transmit(&message, HAL_MAX_DELAY);
+	
 
 	int d=1;
 
+	//Calibrating for current offset
+	uint32_t temp;
+
+	HAL_ADC_Start(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_offset = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_Stop(&hadc1);
+
+	for (int i=0;i<1000;i++){
+		HAL_ADC_Start(&hadc1);
+
+		HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+		temp = HAL_ADC_GetValue(&hadc1);
+
+		HAL_ADC_Stop(&hadc1);
+		curr_offset+=temp;
+		curr_offset/=2;
+	}
+	char adc_good[]="ADC Calibrated\r\n";
+	uart_transmit(&adc_good, HAL_MAX_DELAY);
+	uart_transmit(&oof,HAL_MAX_DELAY);
+	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
+
 	while(1) {
-		HAL_GPIO_TogglePin(GPIO(LED3));
-		
+		//HAL_GPIO_TogglePin(GPIO(LED3));
+	
+		/*
 		//HAL_GPIO_TogglePin(GPIO(LED3));
 		Set_PWM_Duty_Cycle(d,2);
 		Set_PWM_Duty_Cycle(100-d,1);
 		d++;
 		if(d==100) d=1;
+	
 
+		*/
 		HAL_Delay(100);
 	}
 
