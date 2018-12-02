@@ -15,7 +15,7 @@ static void MX_TIM2_Init(void);
 
 
 // Encoder variables
-int _CPR = 20; //CPR = counts per revolution
+int _CPR = 4090; //CPR = counts per revolution
 uint32_t last_mech = 0;
 int _ppairs = 10;
 float _offset = 2;
@@ -43,8 +43,8 @@ int32_t iq_error_sum=0;
 int32_t id_error;
 int32_t id_error_sum=0;
 
-int Ki=100;
-int Kp=50;
+float Ki=0;
+float Kp=.01;
 
 //Voltage variables
 uint32_t vq_set;
@@ -110,7 +110,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handle
 	v_b=inverse_clarke(v_alpha,v_beta,1);
 	v_c=inverse_clarke(v_alpha,v_beta,0);
 
-	
+	v_a/=42946673;
+	v_b/=42946673;
+	v_c/=42946673;
+
+	printf("%lu \r\n",(unsigned long)v_a);	
 	Set_PWM_Duty_Cycle(v_a,1);
 	Set_PWM_Duty_Cycle(v_b,2);
 	Set_PWM_Duty_Cycle(v_c,3);
@@ -174,11 +178,12 @@ int main(void) {
 	char adc_good[]="ADC Calibrated\r\n";
 	uart_transmit(&adc_good, HAL_MAX_DELAY);
 	uart_transmit(&oof,HAL_MAX_DELAY);
-	printf("%d\n",d);
-	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
+	//HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 
 	while(1) {
 		//HAL_GPIO_TogglePin(GPIO(LED3));
+		printf("Encoder Raw: %lu\r\n", (unsigned long)Encoder_Read());
+		printf("Get mechanical position: %f\r\n", Get_Mech_Pos());
 	
 		/*
 		//HAL_GPIO_TogglePin(GPIO(LED3));
@@ -196,10 +201,11 @@ int main(void) {
 }
 
 int32_t park(int32_t i_alpha, int32_t i_beta, bool flag){
+	float pos=Get_Mech_Pos();
 	if(flag)// flag is iq
-		return -i_alpha*sin(Get_Mech_Pos())+i_beta*cos(Get_Mech_Pos());
+		return -i_alpha*sin(pos)+i_beta*cos(pos);
 	else
-		return i_alpha*cos(Get_Mech_Pos())+i_beta*sin(Get_Mech_Pos());
+		return i_alpha*cos(pos)+i_beta*sin(pos);
 
 }
 
@@ -209,10 +215,11 @@ int32_t clarke(int32_t ia, int32_t ib){
 
 
 int32_t inverse_park(int32_t vq_set, int32_t vd_set, bool flag){
+	float pos=Get_Mech_Pos();
 	if(flag)// flag is v_alpha
-		return vd_set*cos(Get_Mech_Pos())-vq_set*sin(Get_Mech_Pos());
+		return vd_set*cos(pos)-vq_set*sin(pos);
 	else
-		return vd_set*sin(Get_Mech_Pos())+vq_set*cos(Get_Mech_Pos());
+		return vd_set*sin(pos)+vq_set*cos(pos);
 }
 
 int32_t inverse_clarke(int32_t v_alpha, int32_t v_beta,bool flag){
@@ -223,15 +230,21 @@ int32_t inverse_clarke(int32_t v_alpha, int32_t v_beta,bool flag){
 
 }
 
-
+float Get_Mech_Pos(){
+	uint32_t raw=Encoder_Read();
+   	float unsigned_mech = (6.28318530718f/(float)_CPR) * (float) (raw);//%_CPR);
+    return (float) unsigned_mech;// + 6.28318530718f* (float) rotations;
+}
+/*
 float Get_Mech_Pos() {                            //returns rotor angle in radians.
-    uint32_t raw = Encoder_Read();
+    int raw = _CPR-Encoder_Read();
     if ((last_mech-raw)>3500) {rotations++;}
     if ((last_mech-raw)<-3500) {rotations--;}
     float unsigned_mech = (6.28318530718f/(float)_CPR)* (float) ((raw)  );//%_CPR);
     last_mech = raw;
     return (float) unsigned_mech + 6.28318530718f* (float) rotations;
 }
+*/
 
 
 float Get_Elec_Pos() {                            //returns rotor electrical angle in radians.
