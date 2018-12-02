@@ -44,7 +44,7 @@ int32_t id_error;
 int32_t id_error_sum=0;
 
 int Ki=100;
-int Kp=5;
+int Kp=50;
 
 //Voltage variables
 uint32_t vq_set;
@@ -81,9 +81,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handle
 
 
 	HAL_ADC_Stop(&hadc1);
-	
-	uart_transmit(&oof, HAL_MAX_DELAY);
-	
 
 	ia=curr_fb1-curr_offset; //Should be around 1.558V
 	ic=curr_fb3-curr_offset;
@@ -112,13 +109,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handle
 	v_a=v_alpha;
 	v_b=inverse_clarke(v_alpha,v_beta,1);
 	v_c=inverse_clarke(v_alpha,v_beta,0);
-	//uart_transmit((char)v_a, HAL_MAX_DELAY);
 
 	
 	Set_PWM_Duty_Cycle(v_a,1);
 	Set_PWM_Duty_Cycle(v_b,2);
 	Set_PWM_Duty_Cycle(v_c,3);
-	uart_transmit(&oof,HAL_MAX_DELAY);	
 	
 }
 
@@ -179,6 +174,7 @@ int main(void) {
 	char adc_good[]="ADC Calibrated\r\n";
 	uart_transmit(&adc_good, HAL_MAX_DELAY);
 	uart_transmit(&oof,HAL_MAX_DELAY);
+	printf("%d\n",d);
 	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 
 	while(1) {

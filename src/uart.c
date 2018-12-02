@@ -59,3 +59,8 @@ HAL_StatusTypeDef uart_transmit_char(char data, int delay) {
 HAL_StatusTypeDef uart_receive(char *data, int delay) {
   return HAL_UART_Receive(&(uart), data, sizeof(data), delay);
 }
+
+int _write(int file, char *data, int len) {
+    HAL_StatusTypeDef status = HAL_UART_Transmit(&(uart), (uint8_t *)data, len, HAL_MAX_DELAY);
+    return status == HAL_OK ? len : 0;
+}
