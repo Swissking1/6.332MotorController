@@ -17,45 +17,47 @@ static void MX_TIM2_Init(void);
 // Encoder variables
 int _CPR = 4090; //CPR = counts per revolution
 uint32_t last_mech = 0;
-int _ppairs = 10;
-float _offset = 2;
+int _ppairs = 14;
+float _offset = 0.0;
 int rotations = 0;
 
+	float reference_angle = 0;                                                
 
 //Current variables
 
 uint32_t curr_fb1;
 uint32_t curr_fb3;
-uint32_t curr_offset;
+uint32_t curr_offset1;
+uint32_t curr_offset3;
 
-int32_t ia;
-int32_t ib;
-int32_t ic;
+float ia;
+float ib;
+float ic;
 
 int32_t i_alpha;
 int32_t i_beta;
 
-int32_t id;
-int32_t iq;
-int32_t iq_set=5;
-int32_t iq_error;
-int32_t iq_error_sum=0;
-int32_t id_error;
-int32_t id_error_sum=0;
+float id;
+float iq;
+float iq_set=50000;
+float iq_error;
+float iq_error_sum=0;
+float id_error;
+float id_error_sum=0;
 
 float Ki=0;
-float Kp=.01;
+float Kp=10;
 
 //Voltage variables
-uint32_t vq_set;
-uint32_t vd_set;
+float vq_set;
+float vd_set;
 
-uint32_t v_alpha;
-uint32_t v_beta;
+int32_t v_alpha;
+int32_t v_beta;
 
-uint32_t v_a;
-uint32_t v_b;
-uint32_t v_c;
+float v_a;
+float v_b;
+float v_c;
 
 
 char oof[]="oof\r\n";
@@ -65,36 +67,76 @@ void _Error_Handler(char *file, int line) {
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handler for PWM Timer
-	
-	HAL_GPIO_WritePin(GPIO(LED2),1);
-	
-	
 	HAL_ADC_Start(&hadc1);
 
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
 	curr_fb1 = HAL_ADC_GetValue(&hadc1);
 
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_fb3 = HAL_ADC_GetValue(&hadc1);
+
+	HAL_ADC_Stop(&hadc1);
+	//printf("%lu ",(unsigned long) curr_fb1);
+	//printf("Curr fb3: %lu \r\n",(unsigned long) curr_fb3);
+
+	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
+	ic=(float)curr_fb3-(float)curr_offset3;
+	printf("%f ", ia);
+	printf("%f\r\n",ic);
+		abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
+		v_a/=10;
+		v_b/=10;
+		v_c/=10;
+
+		v_a+=50;
+		v_b+=50;
+		v_c+=50;
+		
+	//	printf("%d ",(uint8_t) v_a);
+	//	printf("%d ",(uint8_t) v_b);
+	//	printf("%d\r\n",(uint8_t) v_c);
+		
+		//printf("%f ",Get_Mech_Pos());
+		//printf("%f\r\n",reference_angle);
+
+		Set_PWM_Duty_Cycle((uint8_t)v_a,1);
+		Set_PWM_Duty_Cycle((uint8_t)v_b,2);
+		Set_PWM_Duty_Cycle((uint8_t)v_c,3);
+
+		//HAL_Delay(1);                                                         //give the rotor some time to settle into position
+		reference_angle += .01;
+		//reference_angle += .100;
+	
+	
+	
+		/*
 	HAL_ADC_Start(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_fb1 = HAL_ADC_GetValue(&hadc1);
 
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
 	curr_fb3 = HAL_ADC_GetValue(&hadc1);
 
-
 	HAL_ADC_Stop(&hadc1);
+	//printf("%lu ",(unsigned long) curr_fb1);
+	//printf("Curr fb3: %lu \r\n",(unsigned long) curr_fb3);
 
-	ia=curr_fb1-curr_offset; //Should be around 1.558V
-	ic=curr_fb3-curr_offset;
+	ia=(float)curr_fb1-(float)curr_offset; //Should be around 1.558V
+	ic=(float)curr_fb3-(float)curr_offset;
+	//printf("%f\r\n",(float) ia);
+	//printf("ic: %ld \r\n",(long) ia);
 
 	ib=-ib-ic;
 
-	i_alpha=ia;
-	i_beta=clarke(ia,ib);
-
-	iq=park(i_alpha,i_beta,1);
-	id=park(i_alpha,i_beta,0);
+	dq0(ia,ib,ic,&id,&iq);
+	//printf("%f ",id);
+	//printf("%f\r\n",iq);
 
 	iq_error = iq_set-iq;
 	iq_error_sum+=iq_error;
+	//printf("%f ", iq);
+	//printf("%f ", iq_error);
 
 	vq_set=iq_error*Kp+iq_error_sum*Ki;
 
@@ -102,23 +144,37 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){ //Interrupt Handle
 	id_error_sum+=id_error;
 
 	vd_set=id_error*Kp+id_error_sum*Ki;
+	//printf("%f ",vq_set);
+	//printf("%f ",vq_set);
 
-	v_alpha=inverse_park(vq_set,vd_set,1);
-	v_beta=inverse_park(vq_set,vd_set,0);
+	abc(vd_set,vq_set,&v_a,&v_b,&v_c);
 
-	v_a=v_alpha;
-	v_b=inverse_clarke(v_alpha,v_beta,1);
-	v_c=inverse_clarke(v_alpha,v_beta,0);
-
-	v_a/=42946673;
-	v_b/=42946673;
-	v_c/=42946673;
-
-	printf("%lu \r\n",(unsigned long)v_a);	
-	Set_PWM_Duty_Cycle(v_a,1);
-	Set_PWM_Duty_Cycle(v_b,2);
-	Set_PWM_Duty_Cycle(v_c,3);
 	
+	
+	
+	//printf("%f ",v_a);
+	v_a/=9000;
+	v_b/=9000;
+	v_c/=9000;
+
+	
+	v_a+=50;
+	v_b+=50;
+	v_c+=50;
+	
+	printf("%d ",(uint8_t)v_a);
+	printf("%d ",(uint8_t)v_b);
+	printf("%d\r\n",(uint8_t)v_c);
+	
+	//printf("%f\r\n",v_a);
+	
+	
+	
+	
+	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
+	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
+	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
+	*/
 }
 
 int main(void) {
@@ -132,18 +188,17 @@ int main(void) {
 	MX_TIM2_Init();
 
 	//DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
+	//DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 	//DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
-	//Set_PWM_Duty_Cycle(30,1);
-	//Set_PWM_Duty_Cycle(50,2);
-	//Set_PWM_Duty_Cycle(10,3);
+	/*
+	Set_PWM_Duty_Cycle(30,1);
+	Set_PWM_Duty_Cycle(50,2);
+	Set_PWM_Duty_Cycle(10,3);
+	*/
 	
-	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
-	HAL_GPIO_WritePin(GPIO(EN2),1);
-	HAL_GPIO_WritePin(GPIO(EN3),1);
 
 	Encoder_Start();
 	Encoder_Read();
@@ -153,37 +208,104 @@ int main(void) {
 	uart_transmit(&message, HAL_MAX_DELAY);
 	
 
-	int d=1;
-
 	//Calibrating for current offset
-	uint32_t temp;
+	uint32_t temp1;
+	uint32_t temp3;
 
+	printf("%d\r\n",22);
 	HAL_ADC_Start(&hadc1);
 
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_offset = HAL_ADC_GetValue(&hadc1);
+	curr_offset1 = HAL_ADC_GetValue(&hadc1);
+	printf("%d\r\n",23);
+
+	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	curr_offset3 = HAL_ADC_GetValue(&hadc1);
 
 	HAL_ADC_Stop(&hadc1);
+	printf("%d\r\n",24);
 
 	for (int i=0;i<1000;i++){
 		HAL_ADC_Start(&hadc1);
+	printf("%d\r\n",25);
 
 		HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-		temp = HAL_ADC_GetValue(&hadc1);
+		temp1 = HAL_ADC_GetValue(&hadc1);
+	printf("post first poll\r\n");
+
+		HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
+	printf("post 2nd poll\r\n");
+		temp3 = HAL_ADC_GetValue(&hadc1);
+	printf("%d\r\n",27);
 
 		HAL_ADC_Stop(&hadc1);
-		curr_offset+=temp;
-		curr_offset/=2;
+
+		curr_offset1+=temp1;
+		curr_offset1/=2;
+		curr_offset3+=temp3;
+		curr_offset3/=2;
 	}
+	printf("%d\r\n",28);
+	curr_offset1-=10;
+	curr_offset3-=10;
+	//printf("Curr offset: %lu\r\n",(unsigned long)curr_offset);
 	char adc_good[]="ADC Calibrated\r\n";
 	uart_transmit(&adc_good, HAL_MAX_DELAY);
 	uart_transmit(&oof,HAL_MAX_DELAY);
-	//HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
+
+	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
+	HAL_GPIO_WritePin(GPIO(EN2),1);
+	HAL_GPIO_WritePin(GPIO(EN3),1);
+	char half_bridge[] = "Half bridges on\r\n";
+	uart_transmit(&half_bridge, HAL_MAX_DELAY);
+	vq_set = 500;                                                            // Volts on the D-Axis
+	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
+	
+	/*
+	Set_PWM_Duty_Cycle(100,1);
+	Set_PWM_Duty_Cycle(0,2);
+	Set_PWM_Duty_Cycle(0,3);
+	*/
+	
+	/*
+	vq_set = 500;                                                            // Volts on the D-Axis
+	vd_set = 0;
+	float start_angle = Get_Mech_Pos();
+	printf("start angle: %f\r\n",start_angle);
+	while(reference_angle < 10*6.28318530718f){
+		abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
+		v_a/=30;
+		v_b/=30;
+		v_c/=30;
+
+		v_a+=50;
+		v_b+=50;
+		v_c+=50;
+		
+		printf("%d ",(uint8_t) v_a);
+		printf("%d ",(uint8_t) v_b);
+		printf("%d\r\n",(uint8_t) v_c);
+		
+		//printf("%f ",Get_Mech_Pos());
+		//printf("%f\r\n",reference_angle);
+
+		Set_PWM_Duty_Cycle((uint8_t)v_a,1);
+		Set_PWM_Duty_Cycle((uint8_t)v_b,2);
+		Set_PWM_Duty_Cycle((uint8_t)v_c,3);
+
+		//HAL_Delay(1);                                                         //give the rotor some time to settle into position
+		reference_angle += .01;
+		//reference_angle += .100;
+	}
+	*/
+	//printf("End Angle: %f\r\n", Get_Mech_Pos());
+	
+	
 
 	while(1) {
 		//HAL_GPIO_TogglePin(GPIO(LED3));
-		printf("Encoder Raw: %lu\r\n", (unsigned long)Encoder_Read());
-		printf("Get mechanical position: %f\r\n", Get_Mech_Pos());
+		//printf("Encoder Raw: %lu\r\n", (unsigned long)Encoder_Read());
+		//printf("Get mechanical position: %f\r\n", Get_Mech_Pos());
 	
 		/*
 		//HAL_GPIO_TogglePin(GPIO(LED3));
@@ -194,12 +316,43 @@ int main(void) {
 	
 
 		*/
+		//printf("%f\r\n",Get_Elec_Pos());
 		HAL_Delay(100);
 	}
 
     return 0;
 }
-
+void abc(float d, float q, float *a, float *b, float *c,float theta){
+//void abc(float d, float q, float *a, float *b, float *c){
+    /// Inverse DQ0 Transform ///
+    ///Phase current amplitude = lengh of dq vector///
+    ///i.e. iq = 1, id = 0, peak phase current of 1///
+	//float theta= Get_Elec_Pos();
+	//printf("%f ",theta);
+    float cf = cos(theta);
+    float sf = sin(theta);
+    
+    *a = cf*d - sf*q;                // Faster Inverse DQ0 transform
+    *b = (0.86602540378f*sf-.5f*cf)*d - (-0.86602540378f*cf-.5f*sf)*q;
+    *c = (-0.86602540378f*sf-.5f*cf)*d - (0.86602540378f*cf-.5f*sf)*q;
+    }
+    
+    
+void dq0(float a, float b, float c, float *d, float *q){
+    /// DQ0 Transform ///
+    ///Phase current amplitude = lengh of dq vector///
+    ///i.e. iq = 1, id = 0, peak phase current of 1///
+    
+	
+	float theta= Get_Elec_Pos();
+    float cf = cos(theta);
+    float sf = sin(theta);
+    
+    *d = 0.6666667f*(cf*a + (0.86602540378f*sf-.5f*cf)*b + (-0.86602540378f*sf-.5f*cf)*c);   ///Faster DQ0 Transform
+    *q = 0.6666667f*(-sf*a - (-0.86602540378f*cf-.5f*sf)*b - (0.86602540378f*cf-.5f*sf)*c);
+       
+    }
+/*
 int32_t park(int32_t i_alpha, int32_t i_beta, bool flag){
 	float pos=Get_Mech_Pos();
 	if(flag)// flag is iq
@@ -229,28 +382,21 @@ int32_t inverse_clarke(int32_t v_alpha, int32_t v_beta,bool flag){
 		return -0.5*v_alpha-sqrt(3)/2*v_beta;
 
 }
+*/
 
 float Get_Mech_Pos(){
 	uint32_t raw=Encoder_Read();
    	float unsigned_mech = (6.28318530718f/(float)_CPR) * (float) (raw);//%_CPR);
+    if(unsigned_mech < 0) unsigned_mech += 6.28318530718f;
+	else if(unsigned_mech > 6.28318530718f) unsigned_mech -= 6.28318530718f;
     return (float) unsigned_mech;// + 6.28318530718f* (float) rotations;
 }
-/*
-float Get_Mech_Pos() {                            //returns rotor angle in radians.
-    int raw = _CPR-Encoder_Read();
-    if ((last_mech-raw)>3500) {rotations++;}
-    if ((last_mech-raw)<-3500) {rotations--;}
-    float unsigned_mech = (6.28318530718f/(float)_CPR)* (float) ((raw)  );//%_CPR);
-    last_mech = raw;
-    return (float) unsigned_mech + 6.28318530718f* (float) rotations;
-}
-*/
-
 
 float Get_Elec_Pos() {                            //returns rotor electrical angle in radians.
     uint32_t raw = Encoder_Read();
     float elec = ((6.28318530718f/(float)_CPR) * (float) ((_ppairs*raw)%_CPR)) - _offset;
     if(elec < 0) elec += 6.28318530718f;
+	else if(elec > 6.28318530718f) elec -= 6.28318530718f;
     return elec;
 }
 
@@ -348,7 +494,7 @@ static void MX_ADC1_Init(void){
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ENABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
