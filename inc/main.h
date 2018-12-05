@@ -16,7 +16,6 @@ float Get_Mech_Pos(void);
 float Get_Elec_Pos(void);
 
 void abc(float d, float q, float* a, float*b,float*c,float theta);
-//void abc(float d, float q, float* a, float*b,float*c);
 void dq0(float a, float b, float c, float* d,float* q);
 /*
 int32_t clarke(int32_t ia, int32_t ib);

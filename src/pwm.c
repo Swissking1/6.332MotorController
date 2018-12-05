@@ -7,7 +7,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void Set_PWM_Duty_Cycle(uint8_t frac, int channel) {
 	// frac ranges from 1 to 100
-	frac=100-frac; //Inverted PWM b/c of ADCs
+	frac=8000-80*frac; //Inverted PWM b/c of ADCs
 	switch (channel){
 		case 1:
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
@@ -33,7 +33,7 @@ void MX_TIM1_Init(void) {
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 3; 
   htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim1.Init.Period = 100;  // Around 20 kHz
+  htim1.Init.Period = 8000;  
   htim1.Init.ClockDivision = 0;
   htim1.Init.RepetitionCounter = 0;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
@@ -52,15 +52,15 @@ void MX_TIM1_Init(void) {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  //sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  //sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 50;
+  sConfigOC.Pulse = 4000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   //sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
