@@ -41,13 +41,13 @@ float ic;
 
 float id;
 float iq;
-float iq_set=.2;
+float iq_set=-.2;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.0;
+float Ki=0.0000;
 float Kp=.04;
 
 //Voltage variables
@@ -98,6 +98,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	theta=Get_Elec_Pos();
 	dq0(ia,ib,ic,&id,&iq,theta);
 
+	/*
 	abc(vd_set,vq_set,&v_a,&v_b,&v_c,Get_Elec_Pos());
 	//abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
 
@@ -119,19 +120,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	//if(reference_angle>=6.28) flag=false;
 	//if(reference_angle<=0) flag=true;
 	//reference_angle += .100;
-	/*
+	*/
 
 	iq_error = iq_set-iq;
 	iq_error_sum+=iq_error;
 
-	//vq_set=iq_error*Kp+iq_error_sum*Ki;
-	vq_set=iq_error*Kp;
+	vq_set=iq_error*Kp+iq_error_sum*Ki;
+	//vq_set=iq_error*Kp;
 
-	id_error = -id;
-	id_error_sum+=id_error;
+	//id_error = -id;
+	//id_error_sum+=id_error;
 
 	//vd_set=id_error*Kp+id_error_sum*Ki;
-	vd_set=id_error*Kp;
+	//vd_set=id_error*Kp;
+	vd_set=0;
 
 	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta);
 	
@@ -145,7 +147,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
 	
 	HAL_GPIO_WritePin(GPIO(LED2),0);	
-	*/
 }
 
 int main(void) {
@@ -203,7 +204,8 @@ int main(void) {
 		cal2=curr_fb2;
 		*/
 		//printf("%f %f %f\r\n",ia,ic,ib);
-		printf("%f %f\r\n",id,iq);
+		//printf("%f %f\r\n",id,iq);
+		printf("%f %f\r\n",vd_set,vq_set);
 		//printf("%f %f %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
 		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);
