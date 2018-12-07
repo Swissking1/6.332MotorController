@@ -19,7 +19,7 @@ static void MX_DMA_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 5.73;
+float _offset = 5.88;
 
 float reference_angle = 0.7;                                                
 
@@ -29,7 +29,11 @@ uint32_t adc_buf[2];
 uint32_t curr_fb1;
 uint32_t curr_fb2;
 uint32_t curr_fb3;
-uint32_t curr_offset=1942;
+uint32_t curr_offset1=1935;
+uint32_t curr_offset2=1937;
+
+uint32_t cal1;
+uint32_t cal2;
 
 float ia;
 float ib;
@@ -37,22 +41,25 @@ float ic;
 
 float id;
 float iq;
-float iq_set=8;
+float iq_set=.2;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
 float Ki=0.0;
-float Kp=1;
+float Kp=.04;
 
 //Voltage variables
-float vq_set=30;
+float vq_set=28;
 float vd_set=0.0;
 
 float v_a;
 float v_b;
 float v_c;
+
+float theta;
+float theta_old;
 
 
 bool flag=true;
@@ -64,7 +71,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){
 	//HAL_GPIO_WritePin(GPIO(LED2),0);	
 	curr_fb1=adc_buf[0];
 	curr_fb3=adc_buf[1];
-	//HAL_ADC_Stop_DMA(&hadc1);
 }
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
@@ -82,28 +88,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 
+	HAL_GPIO_WritePin(GPIO(LED2),1);	
 	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
-	//HAL_GPIO_WritePin(GPIO(LED2),1);	
-	/*
-	HAL_ADC_Start(&hadc1);
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb1 = HAL_ADC_GetValue(&hadc1);
 
-	//HAL_ADC_Start(&hadc1);
-	/HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb3 = HAL_ADC_GetValue(&hadc1);
-	*/
-
-
-	//curr_fb1=adc_buf[0];
-	//curr_fb1=adc_buf[1];
-	ia=(float)curr_fb1-(float)curr_offset; //Should be around 1.558V
-	ic=(float)curr_fb3-(float)curr_offset;
-	ib=-ia-ic;
-	//printf("%lu\r\n",curr_fb2,(unsigned long) curr_fb2,(unsigned long) curr_fb3);
-	//printf("%f %f\r\n", ia,ic,ib);
-	//dq0(ia,ib,ic,&id,&iq);
-	//printf("%f %f\r\n",id,iq);
+	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
+	ib=(float)curr_fb3-(float)curr_offset2;
+	ic=-ia-ib;
+	
+	theta=Get_Elec_Pos();
+	dq0(ia,ib,ic,&id,&iq,theta);
 
 	abc(vd_set,vq_set,&v_a,&v_b,&v_c,Get_Elec_Pos());
 	//abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
@@ -112,16 +105,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	v_b+=50;
 	v_c+=50;
 	
-	
-	//printf("%d %d %d\r\n",(uint8_t) v_a,(uint8_t) v_b,(uint8_t) v_c);
-	
-	//printf("%f ",Get_Mech_Pos());
-	//printf("%f\r\n",reference_angle);
 
 	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
 	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
-	//reference_angle += .007;
+	//reference_angle += .041;
 	//if(reference_angle>6.28)reference_angle=0;
 	
 		
@@ -130,41 +118,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 //		reference_angle-=.001;
 	//if(reference_angle>=6.28) flag=false;
 	//if(reference_angle<=0) flag=true;
-	//printf("%f\r\n",reference_angle);
 	//reference_angle += .100;
 	/*
 
-	dq0(ia,ib,ic,&id,&iq);
-	//printf("%f ",id);
-	//printf("%f\r\n",iq);
-
 	iq_error = iq_set-iq;
 	iq_error_sum+=iq_error;
-	//printf("%f ", iq);
-	//printf("%f ", iq_error);
 
-	vq_set=iq_error*Kp+iq_error_sum*Ki;
+	//vq_set=iq_error*Kp+iq_error_sum*Ki;
+	vq_set=iq_error*Kp;
 
 	id_error = -id;
 	id_error_sum+=id_error;
 
-	vd_set=id_error*Kp+id_error_sum*Ki;
-	printf("%f %f\r\n",vd_set,vq_set);
+	//vd_set=id_error*Kp+id_error_sum*Ki;
+	vd_set=id_error*Kp;
 
-	abc(vd_set,vq_set,&v_a,&v_b,&v_c,Get_Elec_Pos());
+	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta);
 	
 	v_a+=50;
 	v_b+=50;
 	v_c+=50;
 	
-	//printf("%d %d %d\r\n",(uint8_t)v_a,(uint8_t)v_b,(uint8_t)v_c);
 	
 	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
 	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
 	
 	HAL_GPIO_WritePin(GPIO(LED2),0);	
-	*/	
+	*/
 }
 
 int main(void) {
@@ -186,9 +167,9 @@ int main(void) {
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
 
-	Set_PWM_Duty_Cycle(99,1);
-	Set_PWM_Duty_Cycle(0,2);
-	Set_PWM_Duty_Cycle(0,3);
+	Set_PWM_Duty_Cycle(50,1);
+	Set_PWM_Duty_Cycle(50,2);
+	Set_PWM_Duty_Cycle(50,3);
 	
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
 	printf("FPU Full Access\r\n");
@@ -199,46 +180,6 @@ int main(void) {
 	printf("Encoder started\r\n");
 
 
-	
-
-	//Calibrating for current offset
-	/*
-	uint32_t temp1;
-	uint32_t temp3;
-
-	HAL_ADC_Start(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_offset1 = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_offset3 = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_Stop(&hadc1);
-
-	for (int i=0;i<100;i++){
-		HAL_ADC_Start(&hadc1);
-
-		HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-		temp1 = HAL_ADC_GetValue(&hadc1);
-
-		HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-		temp3 = HAL_ADC_GetValue(&hadc1);
-
-		HAL_ADC_Stop(&hadc1);
-		//printf("%d\r\n", i);
-		HAL_Delay(100);
-
-		curr_offset1+=temp1;
-		curr_offset1/=2;
-		curr_offset3+=temp3;
-		curr_offset3/=2;
-	}
-	printf("Curr offset1: %lu\r\n",(unsigned long)curr_offset1);
-	printf("Curr offset3: %lu\r\n",(unsigned long)curr_offset3);
-	printf("ADC Calibrated\r\n");
-	*/
-
 	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
 	HAL_GPIO_WritePin(GPIO(EN2),1);
 	HAL_GPIO_WritePin(GPIO(EN3),1);
@@ -248,137 +189,25 @@ int main(void) {
 	printf("Successful initialization\r\n");
 	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 	
-	
-	
-	/*
-	Set_PWM_Duty_Cycle(0,1);
-	Set_PWM_Duty_Cycle(0,2);
-	Set_PWM_Duty_Cycle(0,3);
-	
-	uint32_t cal1;
-	uint32_t cal3;
-	*/
-	
-	
-	/*
-	vd_set=500;
-	vq_set=00;
-	HAL_ADC_Start(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb1 = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb3 = HAL_ADC_GetValue(&hadc1);
-
-	HAL_ADC_Stop(&hadc1);
-	//printf("%lu ",(unsigned long) curr_fb1);
-	//printf("Curr fb3: %lu \r\n",(unsigned long) curr_fb3);
-
-	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
-	ic=(float)curr_fb3-(float)curr_offset3;
-	//printf("%f ", ia);
-	//printf("%f\r\n",ic);
-	while(reference_angle<=7*6.28){
-		abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
-		v_a/=10;
-		v_b/=10;
-		v_c/=10;
-
-		v_a+=50;
-		v_b+=50;
-		v_c+=50;
-		
-		//printf("%d ",(uint8_t) v_a);
-		//printf("%d ",(uint8_t) v_b);
-		//printf("%d\r\n",(uint8_t) v_c);
-		
-		//printf("%f ",Get_Mech_Pos());
-		//printf("%f\r\n",reference_angle);
-
-		Set_PWM_Duty_Cycle((uint8_t)v_a,1);
-		Set_PWM_Duty_Cycle((uint8_t)v_b,2);
-		Set_PWM_Duty_Cycle((uint8_t)v_c,3);
-
-		if(flag)
-			reference_angle += .01;
-		else 
-			reference_angle-=.01;
-		if(reference_angle>=6.28){
-		   	///flag=false;
-			//reference_angle=0;
-		}
-		//if(reference_angle<=0) flag=true;
-		printf("%f ",Get_Mech_Pos());
-		printf("%f\r\n",reference_angle);
-		HAL_Delay(2);
-	}
-	*/
-	
-	
-	/*
-	HAL_GPIO_WritePin(GPIO(LED2),1);	//On the order of 10uS
-	volatile float a=1.23;
-
-	for(int i=0;i<100;i++){
-		a+=2.4;
-	}
-	HAL_GPIO_WritePin(GPIO(LED2),0);	
-	*/
-
-
-	
-
-	//printf("%lu\r\n",HAL_RCC_GetPCLK2Freq());
-	//printf("%lu\r\n",HAL_RCC_GetHCLKFreq());
+	/**Main loop**/
 	while(1) {
-		//printf("%f %f %f\r\n",ia,ic,ib);
-		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
-		HAL_Delay(200);
-		printf("%f\r\n",Get_Elec_Pos());
 		/*
-		HAL_GPIO_WritePin(GPIO(LED2),1);	
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb1 = HAL_ADC_GetValue(&hadc1);
+		curr_fb1+=cal1;
+		curr_fb1/=2;
 
-	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
-	curr_fb3 = HAL_ADC_GetValue(&hadc1);
-	
+		curr_fb2+=cal2;
+		curr_fb2/=2;
 
-
-	ia=(float)curr_fb1-(float)curr_offset; //Should be around 1.558V
-	ic=(float)curr_fb3-(float)curr_offset;
-	ib=-ia-ic;
-
-	dq0(ia,ib,ic,&id,&iq);
-	//printf("%f ",id);
-	//printf("%f\r\n",iq);
-
-	iq_error = iq_set-iq;
-	iq_error_sum+=iq_error;
-	//printf("%f ", iq);
-	//printf("%f ", iq_error);
-
-	vq_set=iq_error*Kp+iq_error_sum*Ki;
-
-	id_error = -id;
-	id_error_sum+=id_error;
-
-	vd_set=id_error*Kp+id_error_sum*Ki;
-	//printf("%f ",vq_set);
-	//printf("%f\r\n",vd_set);
-
-	abc(vd_set,vq_set,&v_a,&v_b,&v_c,Get_Elec_Pos());
-	
-	v_a+=50;
-	v_b+=50;
-	v_c+=50;
-
-		HAL_GPIO_WritePin(GPIO(LED2),0);	
-		//printf("cal1: %lu\r\n",(unsigned long) cal1);
-		//printf("cal3: %lu\r\n",(unsigned long) cal3);
-		HAL_Delay(100);
-	*/	
+		HAL_Delay(200);
+		cal1=curr_fb1;
+		cal2=curr_fb2;
+		*/
+		//printf("%f %f %f\r\n",ia,ic,ib);
+		printf("%f %f\r\n",id,iq);
+		//printf("%f %f %f\r\n",v_a,v_b,v_c);
+		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
+		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);
+		HAL_Delay(200);
 	}
 
     return 0;
@@ -387,8 +216,7 @@ void abc(float d, float q, float *a, float *b, float *c,float theta){
     /// Inverse DQ0 Transform ///
     ///Phase current amplitude = lengh of dq vector///
     ///i.e. iq = 1, id = 0, peak phase current of 1///
-	//float theta= Get_Elec_Pos();
-	//printf("%f ",theta);
+
     float cf = cosf(theta);
     float sf = sinf(theta);
     
@@ -397,15 +225,11 @@ void abc(float d, float q, float *a, float *b, float *c,float theta){
     *c = (-0.86602540378f*sf-.5f*cf)*d - (0.86602540378f*cf-.5f*sf)*q;
 }
     
-    
-void dq0(float a, float b, float c, float *d, float *q){
+void dq0(float a, float b, float c, float *d, float *q, float theta){
     /// DQ0 Transform ///
     ///Phase current amplitude = lengh of dq vector///
     ///i.e. iq = 1, id = 0, peak phase current of 1///
     
-	
-	float theta= Get_Elec_Pos();
-	//printf("%f\r\n",theta);
     float cf = cosf(theta);
     float sf = sinf(theta);
     
@@ -422,7 +246,8 @@ float Get_Mech_Pos(){
     return (float) unsigned_mech;// + 6.28318530718f* (float) rotations;
 }
 
-float Get_Elec_Pos() {                            //returns rotor electrical angle in radians.
+float Get_Elec_Pos() {
+	//returns rotor electrical angle in radians.
     uint32_t raw = Encoder_Read();
     float elec = ((6.28318530718f/(float)_CPR) * (float) ((_ppairs*raw)%_CPR)) - _offset;
     if(elec < 0) elec += 6.28318530718f;
@@ -505,7 +330,7 @@ static void MX_ADC1_Init(void){
     */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
