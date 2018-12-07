@@ -19,7 +19,7 @@ static void MX_DMA_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 3.55;
+float _offset = 5.73;
 
 float reference_angle = 0.7;                                                
 
@@ -61,16 +61,29 @@ void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){
-	HAL_GPIO_WritePin(GPIO(LED2),0);	
+	//HAL_GPIO_WritePin(GPIO(LED2),0);	
 	curr_fb1=adc_buf[0];
 	curr_fb3=adc_buf[1];
 	//HAL_ADC_Stop_DMA(&hadc1);
 }
 
+void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
+	if(__HAL_GPIO_EXTI_GET_IT(GPIO_Pin) != RESET) {
+		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_Pin);
+		HAL_GPIO_EXTI_Callback(GPIO_Pin);
+	  }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+  if(GPIO_Pin == GPIO_PIN_10){
+	  TIM2->CNT=0;//Set encoder count to zero
+  } 
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 
 	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
-	HAL_GPIO_WritePin(GPIO(LED2),1);	
+	//HAL_GPIO_WritePin(GPIO(LED2),1);	
 	/*
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
@@ -159,6 +172,7 @@ int main(void) {
 	HAL_Init();
 	SystemClock_Config();
 	GPIO_BEGIN_INIT();
+	MX_GPIO_Init();
 	MX_DMA_Init();
 	uart_init();
 	MX_TIM1_Init();
@@ -172,9 +186,9 @@ int main(void) {
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
 
-	//Set_PWM_Duty_Cycle(45,1);
-	//Set_PWM_Duty_Cycle(50,2);
-	//Set_PWM_Duty_Cycle(50,3);
+	Set_PWM_Duty_Cycle(99,1);
+	Set_PWM_Duty_Cycle(0,2);
+	Set_PWM_Duty_Cycle(0,3);
 	
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
 	printf("FPU Full Access\r\n");
@@ -318,9 +332,10 @@ int main(void) {
 	//printf("%lu\r\n",HAL_RCC_GetPCLK2Freq());
 	//printf("%lu\r\n",HAL_RCC_GetHCLKFreq());
 	while(1) {
-		//printf("%f %f\r\n",ia,ic,ib);
-		printf("%lu %lu\r\n",curr_fb1,curr_fb3);
-		HAL_Delay(100);
+		//printf("%f %f %f\r\n",ia,ic,ib);
+		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
+		HAL_Delay(200);
+		printf("%f\r\n",Get_Elec_Pos());
 		/*
 		HAL_GPIO_WritePin(GPIO(LED2),1);	
 	HAL_ADC_PollForConversion(&hadc1,HAL_MAX_DELAY); //Wait for ADC conversion
@@ -429,22 +444,17 @@ void Encoder_Stop(void){
     HAL_TIM_Encoder_Stop(&htim2, TIM_CHANNEL_ALL);
 }
 
-static void MX_TIM2_Init(void){
+static void MX_TIM2_Init(void)
+{
 
   TIM_Encoder_InitTypeDef sConfig;
   TIM_MasterConfigTypeDef sMasterConfig;
-  TIM_IC_InitTypeDef sConfigIC;
 
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 0xFFFF;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
   sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
@@ -466,15 +476,6 @@ static void MX_TIM2_Init(void){
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
 }
 
 static void MX_ADC1_Init(void){
@@ -485,7 +486,7 @@ static void MX_ADC1_Init(void){
     */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_6B;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ENABLE; 
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
@@ -504,7 +505,7 @@ static void MX_ADC1_Init(void){
     */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -586,4 +587,25 @@ void SystemClock_Config(void){
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+static void MX_GPIO_Init(void)
+{
+
+  GPIO_InitTypeDef GPIO_InitStruct;
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin : PB10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }

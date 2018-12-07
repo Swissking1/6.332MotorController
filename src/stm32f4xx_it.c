@@ -211,6 +211,15 @@ void TIM2_IRQHandler(void){
   HAL_TIM_IRQHandler(&htim2);
 }
 
+void EXTI15_10_IRQHandler(void){
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
+}
 void DMA2_Stream0_IRQHandler(void){
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
 
