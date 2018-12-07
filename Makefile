@@ -89,7 +89,7 @@ AS_SRCS = $(wildcard $(patsubst %, %/*.$(AS_EXT), . $(SRCS_DIRS)))
 
 # optimization flags ("-O0" - no optimization, "-O1" - optimize, "-O2" -
 # optimize even more, "-Os" - optimize for size or "-O3" - optimize yet more)
-OPTIMIZATION = -Os
+OPTIMIZATION = -O2
 
 # set to 1 to optimize size by removing unused code and data during link phase
 REMOVE_UNUSED = 1
@@ -155,7 +155,7 @@ endif
 CORE_FLAGS = -mcpu=$(CORE) -mthumb
 
 # flags for C compiler
-C_FLAGS = -std=$(C_STD) -g -ggdb3 -fverbose-asm -Wa,-ahlms=$(OUT_DIR_F)$(notdir $(<:.$(C_EXT)=.lst))
+C_FLAGS = -std=$(C_STD) -g -ggdb3 -fverbose-asm -Wa,-ahlms=$(OUT_DIR_F)$(notdir $(<:.$(C_EXT)=.lst)) -mfloat-abi=softfp -mfpu=fpv4-sp-d16
 #			c standard	debug(?) 	extra comments
 
 # flags for assembler

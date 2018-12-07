@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-void Set_PWM_Duty_Cycle(uint8_t frac, int channel);
+void Set_PWM_Duty_Cycle(uint32_t frac, int channel);
 void MX_TIM1_Init(void);
 
 #endif // ifndef __PWM_H
