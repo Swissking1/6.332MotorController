@@ -47,7 +47,7 @@ float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.0000;
+float Ki=0.000;
 float Kp=.04;
 
 //Voltage variables
