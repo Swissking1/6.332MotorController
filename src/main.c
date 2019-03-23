@@ -19,7 +19,8 @@ static void MX_DMA_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 5.88;
+float _offset = 6.0;
+//float _offset = 5.88;
 
 float reference_angle = 0.7;                                                
 
@@ -41,14 +42,14 @@ float ic;
 
 float id;
 float iq;
-float iq_set=-.2;
+float iq_set=500;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
 float Ki=0.000;
-float Kp=.04;
+float Kp=.03;
 
 //Voltage variables
 float vq_set=28;
@@ -63,6 +64,7 @@ float theta_old;
 
 
 bool flag=true;
+bool adc_ready;
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -71,6 +73,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){
 	//HAL_GPIO_WritePin(GPIO(LED2),0);	
 	curr_fb1=adc_buf[0];
 	curr_fb3=adc_buf[1];
+	adc_ready = true;
 }
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
@@ -89,8 +92,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 
 	HAL_GPIO_WritePin(GPIO(LED2),1);	
+	adc_ready=false;
 	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
 
+//	while(!adc_ready){
+//		printf("%d\r\n",adc_ready); //Wait for ADCs to finish converting
+//
+//	} 
 	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
 	ib=(float)curr_fb3-(float)curr_offset2;
 	ic=-ia-ib;
@@ -172,7 +180,6 @@ int main(void) {
 	Set_PWM_Duty_Cycle(50,2);
 	Set_PWM_Duty_Cycle(50,3);
 	
-    SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
 	printf("FPU Full Access\r\n");
 	
 
@@ -205,7 +212,7 @@ int main(void) {
 		*/
 		//printf("%f %f %f\r\n",ia,ic,ib);
 		//printf("%f %f\r\n",id,iq);
-		printf("%f %f\r\n",vd_set,vq_set);
+		SLO_PRINTF("%f\r\n",vq_set);
 		//printf("%f %f %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
 		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);

@@ -25,5 +25,15 @@ static void MX_GPIO_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 
+#define SLO_PRINTF(...) {                    \
+  static uint32_t last_print = 0;            \
+  do {                                       \
+    if (HAL_GetTick() - last_print > 1000) { \
+      last_print = HAL_GetTick();            \
+      printf(__VA_ARGS__);                   \
+    }                                        \
+   } while (0);                              \
+}
+
 #endif // __MAIN_H__
 
