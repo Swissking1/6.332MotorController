@@ -83,7 +83,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
-
 	HAL_GPIO_WritePin(GPIO(LED2),1);	
 	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
 
@@ -128,10 +127,7 @@ int main(void) {
 	MX_TIM1_Init();
 	MX_ADC1_Init();
 	MX_TIM2_Init();
-
-	//DGPIO_INIT_OUT(LED1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
-	//DGPIO_INIT_OUT(LED3,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
@@ -141,12 +137,10 @@ int main(void) {
 	Set_PWM_Duty_Cycle(50,3);
 	
 	printf("FPU Full Access\r\n");
-	
 
 	Encoder_Start();
 	Encoder_Read();
 	printf("Encoder started\r\n");
-
 
 	HAL_GPIO_WritePin(GPIO(EN1),1); //Turn on half bridges
 	HAL_GPIO_WritePin(GPIO(EN2),1);
@@ -166,14 +160,11 @@ int main(void) {
 		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);
 		HAL_Delay(200);
 	}
-
     return 0;
 }
+
 void abc(float d, float q, float *a, float *b, float *c,float theta){
     /// Inverse DQ0 Transform ///
-    ///Phase current amplitude = lengh of dq vector///
-    ///i.e. iq = 1, id = 0, peak phase current of 1///
-
     float cf = cosf(theta);
     float sf = sinf(theta);
     
@@ -184,15 +175,11 @@ void abc(float d, float q, float *a, float *b, float *c,float theta){
     
 void dq0(float a, float b, float c, float *d, float *q, float theta){
     /// DQ0 Transform ///
-    ///Phase current amplitude = lengh of dq vector///
-    ///i.e. iq = 1, id = 0, peak phase current of 1///
-    
     float cf = cosf(theta);
     float sf = sinf(theta);
     
     *d = 0.6666667f*(cf*a + (0.86602540378f*sf-.5f*cf)*b + (-0.86602540378f*sf-.5f*cf)*c);   ///Faster DQ0 Transform
     *q = 0.6666667f*(-sf*a - (-0.86602540378f*cf-.5f*sf)*b - (0.86602540378f*cf-.5f*sf)*c);
-       
 }
 
 float Get_Mech_Pos(){
@@ -212,8 +199,6 @@ float Get_Elec_Pos() {
     return elec;
 }
 
-
-
 uint32_t Encoder_Read(void){
     return TIM2->CNT;
 }
@@ -227,7 +212,6 @@ void Encoder_Stop(void){
 }
 
 static void MX_TIM2_Init(void){
-
   TIM_Encoder_InitTypeDef sConfig;
   TIM_MasterConfigTypeDef sMasterConfig;
 
@@ -260,7 +244,6 @@ static void MX_TIM2_Init(void){
 }
 
 static void MX_ADC1_Init(void){
-
   ADC_ChannelConfTypeDef sConfig;
 
     /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
@@ -315,7 +298,6 @@ static void MX_DMA_Init(void) {
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
-
 }
 
 void SystemClock_Config(void){
@@ -373,7 +355,6 @@ void SystemClock_Config(void){
 }
  
 static void MX_GPIO_Init(void){
-
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
