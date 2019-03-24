@@ -7,7 +7,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 void Set_PWM_Duty_Cycle(uint32_t frac, int channel) {
 	// frac ranges from 1 to 100
-	frac=18000-180*frac; //Inverted PWM b/c of ADCs
+	frac=2000-20*frac; //Inverted PWM b/c of ADCs
 	switch (channel){
 		case 1:
 			__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, frac);
@@ -33,7 +33,7 @@ void MX_TIM1_Init(void) {
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 0; 
   htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim1.Init.Period = 18000;  
+  htim1.Init.Period = 2000;  
   htim1.Init.ClockDivision = 0;
   htim1.Init.RepetitionCounter = 1;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
