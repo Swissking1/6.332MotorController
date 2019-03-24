@@ -33,7 +33,7 @@ void MX_TIM1_Init(void) {
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 0; 
   htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED2;
-  htim1.Init.Period = 2000;  
+  htim1.Init.Period = 2000;  //2000 ->  0.0002 s
   htim1.Init.ClockDivision = 0;
   htim1.Init.RepetitionCounter = 1;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)

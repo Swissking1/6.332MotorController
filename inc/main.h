@@ -19,6 +19,8 @@ void abc(float d, float q, float* a, float*b,float*c,float theta);
 void dq0(float a, float b, float c, float* d,float* q, float theta);
 
 
+void adc_init(void);
+void adc_read(uint32_t chan, uint32_t *data);
 int _write(int file, char *data,int len);
 
 static void MX_GPIO_Init(void);

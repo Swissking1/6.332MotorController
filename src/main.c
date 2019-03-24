@@ -19,20 +19,14 @@ static void MX_DMA_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 4.0;
-
+float _offset = 0.8;
 
 //Current variables
-
 uint32_t adc_buf[2];
 uint32_t curr_fb1;
 uint32_t curr_fb2;
-uint32_t curr_fb3;
 uint32_t curr_offset1=1935;
 uint32_t curr_offset2=1937;
-
-uint32_t cal1;
-uint32_t cal2;
 
 float ia;
 float ib;
@@ -40,14 +34,15 @@ float ic;
 
 float id;
 float iq;
-float iq_set=500;
+float iq_set=400;
+float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.00;
-float Kp=.03;
+float Ki=0.000;
+float Kp=.02;
 
 //Voltage variables
 float vq_set;
@@ -59,13 +54,15 @@ float v_c;
 
 float theta;
 
+ADC_ChannelConfTypeDef sConfig;
+
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){ //Not used
 	//HAL_GPIO_WritePin(GPIO(LED2),0);	
 	curr_fb1=adc_buf[0];
-	curr_fb3=adc_buf[1];
+	curr_fb2=adc_buf[1];
 }
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
@@ -81,27 +78,32 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   } 
 }
 
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 	HAL_GPIO_WritePin(GPIO(LED2),1);	
-	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
+	//HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
+
+	adc_read(0,&curr_fb1); //Read ADC channel 0 <-> PA0 <-> Phase A
+	adc_read(11,&curr_fb2); //Read ADC channel 11 <-> PC1 <-> Phase B
+	HAL_GPIO_WritePin(GPIO(LED2),0);	
+	
 
 	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
-	ib=(float)curr_fb3-(float)curr_offset2;
-	ic=-ia-ib;
+	ic=(float)curr_fb2-(float)curr_offset2;
+	ib=-ia-ic;
 	
 	theta=Get_Elec_Pos();
-	dq0(ia,ib,ic,&id,&iq,theta);
+	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
 
+	iq_error = iq_set-iq; //Error term
+	iq_error_sum+=iq_error*.0002; //integral term with dt = .0002 <> 5 kHz
+	vq_set=iq_error*Kp+iq_error_sum*Ki; //PID for VQ
 
-	iq_error = iq_set-iq;
-	iq_error_sum+=iq_error;
-	vq_set=iq_error*Kp+iq_error_sum*Ki;
-
-	id_error = -id;
-	id_error_sum+=id_error;
+	id_error = id_set-id;
+	id_error_sum+=id_error*.0002; //.0002 <-> 5 kHz switching freq.
 	vd_set=id_error*Kp+id_error_sum*Ki;
 
-	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta);
+	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta); //Invert DQ to get voltage commands
 	
 	v_a+=50;
 	v_b+=50;
@@ -126,14 +128,15 @@ int main(void) {
 	MX_TIM1_Init();
 	MX_ADC1_Init();
 	MX_TIM2_Init();
+	/** GPIO Initialization**/
 	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
-	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
+	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET); 
 
 	Set_PWM_Duty_Cycle(100,1);
-	Set_PWM_Duty_Cycle(50,2);
-	Set_PWM_Duty_Cycle(50,3);
+	Set_PWM_Duty_Cycle(0,2);
+	Set_PWM_Duty_Cycle(0,3);
 	
 	printf("FPU Full Access\r\n");
 
@@ -154,10 +157,13 @@ int main(void) {
 	while(1) {
 		//printf("%f %f\r\n",id,iq);
 		//SLO_PRINTF("%f\r\n",vq_set);
-		//SLO_PRINTF("%f %f %f\r\n",v_a,v_b,v_c);
+		//printf("%f %f\r\n", iq,iq_set,id,id_set);
+		printf("%f %f %d\r\n", ia,ib,0);
+		//printf("%f\r\n", iq);
+		//printf("%f %f %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
-		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);
-		HAL_Delay(200);
+		//printf("%f\r\n", Get_Elec_Pos());
+		//HAL_Delay(200);
 	}
     return 0;
 }
@@ -242,6 +248,25 @@ static void MX_TIM2_Init(void){
 
 }
 
+static void config_channel(ADC_HandleTypeDef *hadc, uint32_t channel_num) {
+  ADC_ChannelConfTypeDef sConfig;
+
+  sConfig.Channel = channel_num;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  HAL_ADC_ConfigChannel(hadc, &sConfig);
+}
+
+void adc_read(uint32_t chan, uint32_t *data) {
+	config_channel(&hadc1, chan);
+	HAL_ADC_Start(&hadc1);
+	if (HAL_ADC_PollForConversion(&hadc1, 100) == HAL_OK) {
+		*data = HAL_ADC_GetValue(&hadc1);
+	}
+}
+
+
+
 static void MX_ADC1_Init(void){
   ADC_ChannelConfTypeDef sConfig;
 
@@ -250,15 +275,18 @@ static void MX_ADC1_Init(void){
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = ENABLE; 
+  hadc1.Init.ScanConvMode = DISABLE; 
+  //hadc1.Init.ScanConvMode = ENABLE; 
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 2;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+  hadc1.Init.NbrOfConversion = 1;
+  //hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  //hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
