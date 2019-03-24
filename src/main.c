@@ -19,10 +19,8 @@ static void MX_DMA_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 6.0;
-//float _offset = 5.88;
+float _offset = 4.0;
 
-float reference_angle = 0.7;                                                
 
 //Current variables
 
@@ -52,19 +50,14 @@ float Ki=0.000;
 float Kp=.03;
 
 //Voltage variables
-float vq_set=28;
-float vd_set=0.0;
+float vq_set;
+float vd_set;
 
 float v_a;
 float v_b;
 float v_c;
 
 float theta;
-float theta_old;
-
-
-bool flag=true;
-bool adc_ready;
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -92,13 +85,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 
 	HAL_GPIO_WritePin(GPIO(LED2),1);	
-	adc_ready=false;
 	HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
 
-//	while(!adc_ready){
-//		printf("%d\r\n",adc_ready); //Wait for ADCs to finish converting
-//
-//	} 
 	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
 	ib=(float)curr_fb3-(float)curr_offset2;
 	ic=-ia-ib;
@@ -106,42 +94,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	theta=Get_Elec_Pos();
 	dq0(ia,ib,ic,&id,&iq,theta);
 
-	/*
-	abc(vd_set,vq_set,&v_a,&v_b,&v_c,Get_Elec_Pos());
-	//abc(vd_set,vq_set,&v_a,&v_b,&v_c,reference_angle);
-
-	v_a+=50;
-	v_b+=50;
-	v_c+=50;
-	
-
-	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
-	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
-	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
-	//reference_angle += .041;
-	//if(reference_angle>6.28)reference_angle=0;
-	
-		
-	//HAL_GPIO_WritePin(GPIO(LED2),0);	
-	//else 
-//		reference_angle-=.001;
-	//if(reference_angle>=6.28) flag=false;
-	//if(reference_angle<=0) flag=true;
-	//reference_angle += .100;
-	*/
 
 	iq_error = iq_set-iq;
 	iq_error_sum+=iq_error;
-
 	vq_set=iq_error*Kp+iq_error_sum*Ki;
-	//vq_set=iq_error*Kp;
 
-	//id_error = -id;
-	//id_error_sum+=id_error;
-
-	//vd_set=id_error*Kp+id_error_sum*Ki;
-	//vd_set=id_error*Kp;
-	vd_set=0;
+	id_error = -id;
+	id_error_sum+=id_error;
+	vd_set=id_error*Kp+id_error_sum*Ki;
 
 	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta);
 	
@@ -176,7 +136,7 @@ int main(void) {
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET);
 
-	Set_PWM_Duty_Cycle(50,1);
+	Set_PWM_Duty_Cycle(100,1);
 	Set_PWM_Duty_Cycle(50,2);
 	Set_PWM_Duty_Cycle(50,3);
 	
@@ -199,21 +159,9 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
-		/*
-		curr_fb1+=cal1;
-		curr_fb1/=2;
-
-		curr_fb2+=cal2;
-		curr_fb2/=2;
-
-		HAL_Delay(200);
-		cal1=curr_fb1;
-		cal2=curr_fb2;
-		*/
-		//printf("%f %f %f\r\n",ia,ic,ib);
 		//printf("%f %f\r\n",id,iq);
-		SLO_PRINTF("%f\r\n",vq_set);
-		//printf("%f %f %f\r\n",v_a,v_b,v_c);
+		//SLO_PRINTF("%f\r\n",vq_set);
+		//SLO_PRINTF("%f %f %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
 		//printf("%f\r\n", Get_Elec_Pos(),reference_angle);
 		HAL_Delay(200);
@@ -278,8 +226,7 @@ void Encoder_Stop(void){
     HAL_TIM_Encoder_Stop(&htim2, TIM_CHANNEL_ALL);
 }
 
-static void MX_TIM2_Init(void)
-{
+static void MX_TIM2_Init(void){
 
   TIM_Encoder_InitTypeDef sConfig;
   TIM_MasterConfigTypeDef sMasterConfig;
@@ -355,6 +302,8 @@ static void MX_ADC1_Init(void){
   }
 
 }
+
+
 /** 
   * Enable DMA controller clock
   */
@@ -422,8 +371,8 @@ void SystemClock_Config(void){
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-static void MX_GPIO_Init(void)
-{
+ 
+static void MX_GPIO_Init(void){
 
   GPIO_InitTypeDef GPIO_InitStruct;
 
