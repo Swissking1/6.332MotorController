@@ -34,7 +34,7 @@ float ic;
 
 float id;
 float iq;
-float iq_set=400;
+float iq_set=800;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
@@ -84,7 +84,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	//HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
 
 	adc_read(0,&curr_fb1); //Read ADC channel 0 <-> PA0 <-> Phase A
-	adc_read(11,&curr_fb2); //Read ADC channel 11 <-> PC1 <-> Phase B
+	adc_read(10,&curr_fb2); //Read ADC channel 11 <-> PC0 <-> Phase C
 	HAL_GPIO_WritePin(GPIO(LED2),0);	
 	
 
@@ -110,9 +110,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	v_c+=50;
 	
 	
+	
 	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
 	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
+	
 	
 	HAL_GPIO_WritePin(GPIO(LED2),0);	
 }
@@ -134,9 +136,9 @@ int main(void) {
 	DGPIO_INIT_OUT(EN2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN3,GPIO_PIN_RESET); 
 
-	Set_PWM_Duty_Cycle(100,1);
-	Set_PWM_Duty_Cycle(0,2);
-	Set_PWM_Duty_Cycle(0,3);
+	Set_PWM_Duty_Cycle(50,1);
+	Set_PWM_Duty_Cycle(50,2);
+	Set_PWM_Duty_Cycle(50,3);
 	
 	printf("FPU Full Access\r\n");
 
@@ -158,7 +160,7 @@ int main(void) {
 		//printf("%f %f\r\n",id,iq);
 		//SLO_PRINTF("%f\r\n",vq_set);
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
-		printf("%f %f %d\r\n", ia,ib,0);
+		printf("%f %f %d\r\n", ia,ic,0);
 		//printf("%f\r\n", iq);
 		//printf("%f %f %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
