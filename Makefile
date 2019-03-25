@@ -113,7 +113,7 @@ MOUNT = /Volumes/NODE_F413ZH/
 
 # actual settings
 #UART_COM = $(word 1, $(wildcard /dev/tty.usbserial-*) $(wildcard /dev/tty.usbmodem*) $(wildcard /dev/ttyUSB*) $(wildcard /dev/ttyACM*))
-UART_COM=/dev/ttyS12
+UART_COM=/dev/ttyS19
 UART_BAUD = 115200
 UART_WORDLENGTH = 8
 UART_PARITY = n # Must be EVEN, ODD, or NONE

@@ -2,7 +2,6 @@
 #include "main.h"
 #include <string.h>
 
-
 volatile HAL_StatusTypeDef status;
 
 ADC_HandleTypeDef hadc1;
@@ -12,7 +11,6 @@ extern TIM_HandleTypeDef htim1;
 
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
-
 
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
@@ -52,7 +50,9 @@ float v_c;
 
 float theta;
 
-ADC_ChannelConfTypeDef sConfig;
+#define PHASE_A_CURRENT 0 //Current sensor adc channel definitions
+#define PHASE_B_CURRENT 11
+#define PHASE_C_CURRENT 10
 
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
@@ -74,8 +74,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
 	HAL_GPIO_WritePin(GPIO(LED2),1); //GPIO for timing ADCs	
 
-	adc_read(0,&curr_fb1); //Read ADC channel 0 <-> PA0 <-> Phase A
-	adc_read(10,&curr_fb2); //Read ADC channel 11 <-> PC0 <-> Phase C, note: ADC channel 10 <-> PC1, Phase B, acting strange
+	adc_read(PHASE_A_CURRENT,&curr_fb1); //Read ADC for phase A
+	adc_read(PHASE_C_CURRENT,&curr_fb2); //Read ADC for phase B
+
 	HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing ADCs	
 
 	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
@@ -264,18 +265,15 @@ static void MX_ADC1_Init(void){
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE; 
-  //hadc1.Init.ScanConvMode = ENABLE; 
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
-  //hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
+  if (HAL_ADC_Init(&hadc1) != HAL_OK){
     _Error_Handler(__FILE__, __LINE__);
   }
 
@@ -284,24 +282,13 @@ static void MX_ADC1_Init(void){
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
-    */
-  sConfig.Channel = ADC_CHANNEL_11;
-  sConfig.Rank = 2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK){
     _Error_Handler(__FILE__, __LINE__);
   }
 
 }
 
 void SystemClock_Config(void){
-
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
