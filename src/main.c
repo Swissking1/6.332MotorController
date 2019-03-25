@@ -6,14 +6,12 @@
 volatile HAL_StatusTypeDef status;
 
 ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 
 extern TIM_HandleTypeDef htim1;
 
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_DMA_Init(void);
 
 
 // Encoder variables
@@ -59,34 +57,26 @@ ADC_ChannelConfTypeDef sConfig;
 void _Error_Handler(char *file, int line) {
 	while(1) {} // Hang on error
 }
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1){ //Not used
-	//HAL_GPIO_WritePin(GPIO(LED2),0);	
-	curr_fb1=adc_buf[0];
-	curr_fb2=adc_buf[1];
-}
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
 	if(__HAL_GPIO_EXTI_GET_IT(GPIO_Pin) != RESET) {
 		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_Pin);
 		HAL_GPIO_EXTI_Callback(GPIO_Pin);
-	  }
+	}
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-  if(GPIO_Pin == GPIO_PIN_10){
+  if(GPIO_Pin == GPIO_PIN_10)
 	  TIM2->CNT=0;//Set encoder count to zero
-  } 
 }
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler for PWM Timer
-	HAL_GPIO_WritePin(GPIO(LED2),1);	
-	//HAL_ADC_Start_DMA(&hadc1,adc_buf,2);
+	HAL_GPIO_WritePin(GPIO(LED2),1); //GPIO for timing ADCs	
 
 	adc_read(0,&curr_fb1); //Read ADC channel 0 <-> PA0 <-> Phase A
-	adc_read(10,&curr_fb2); //Read ADC channel 11 <-> PC0 <-> Phase C
-	HAL_GPIO_WritePin(GPIO(LED2),0);	
-	
+	adc_read(10,&curr_fb2); //Read ADC channel 11 <-> PC0 <-> Phase C, note: ADC channel 10 <-> PC1, Phase B, acting strange
+	HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing ADCs	
 
 	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
 	ic=(float)curr_fb2-(float)curr_offset2;
@@ -109,14 +99,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	v_b+=50;
 	v_c+=50;
 	
-	
-	
 	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
 	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
 	
-	
-	HAL_GPIO_WritePin(GPIO(LED2),0);	
+	HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing loop headroom
 }
 
 int main(void) {
@@ -125,11 +112,11 @@ int main(void) {
 	SystemClock_Config();
 	GPIO_BEGIN_INIT();
 	MX_GPIO_Init();
-	MX_DMA_Init();
 	uart_init();
 	MX_TIM1_Init();
 	MX_ADC1_Init();
 	MX_TIM2_Init();
+
 	/** GPIO Initialization**/
 	DGPIO_INIT_OUT(LED2,GPIO_PIN_RESET);
 	DGPIO_INIT_OUT(EN1,GPIO_PIN_RESET);
@@ -150,6 +137,7 @@ int main(void) {
 	HAL_GPIO_WritePin(GPIO(EN2),1);
 	HAL_GPIO_WritePin(GPIO(EN3),1);
 	printf("Half bridges on \r\n");
+
 	HAL_ADC_Start(&hadc1);
 	printf("ADC Started\r\n");
 	printf("Successful initialization\r\n");
@@ -267,8 +255,6 @@ void adc_read(uint32_t chan, uint32_t *data) {
 	}
 }
 
-
-
 static void MX_ADC1_Init(void){
   ADC_ChannelConfTypeDef sConfig;
 
@@ -287,7 +273,6 @@ static void MX_ADC1_Init(void){
   hadc1.Init.NbrOfConversion = 1;
   //hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = DISABLE;
-  //hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -313,20 +298,6 @@ static void MX_ADC1_Init(void){
     _Error_Handler(__FILE__, __LINE__);
   }
 
-}
-
-
-/** 
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void) {
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 }
 
 void SystemClock_Config(void){
