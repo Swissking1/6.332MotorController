@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 void _Error_Handler(char *, int);
+void SystemClock_Config(void);
 
 uint32_t Encoder_Read(void);
 void Encoder_Start(void);

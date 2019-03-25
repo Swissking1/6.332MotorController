@@ -55,7 +55,9 @@ float theta;
 #define PHASE_C_CURRENT 10
 
 void _Error_Handler(char *file, int line) {
-	while(1) {} // Hang on error
+	while(1) {
+		printf("ERROR in file %s on line %d", file, line);
+	} // Hang on error
 }
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
