@@ -9,4 +9,6 @@ Nucleo shield schematic: https://www.st.com/content/ccc/resource/technical/layou
 
 Motor website: https://hobbyking.com/en_us/propdrive-v2-series-4248-650kv-brushless-outrunner-motor.html
 
+3 Phase driver datasheet: https://www.st.com/resource/en/datasheet/l6230.pdf
+
 ![3 phase diagram](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/3_phase_AC_waveform.svg/220px-3_phase_AC_waveform.svg.png)
