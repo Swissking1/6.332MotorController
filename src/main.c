@@ -31,14 +31,14 @@ float ic;
 
 float id;
 float iq;
-float iq_set=1500;
+float iq_set=300;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.0;
+float Ki=0.05;
 float Kp=0.03;
 
 //Voltage variables
@@ -58,7 +58,7 @@ float theta;
 void _Error_Handler(char *file, int line) {
 	while(1) {
 		printf("ERROR in file %s on line %d", file, line);
-	} // Hang on error
+	} 
 }
 
 void HAL_GPIO_EXT10_IRQHandler(uint16_t GPIO_Pin){
@@ -152,15 +152,17 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
+		/*	
 		if(HAL_GetTick()-time_check>4000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
 		}
+		*/	
 		//printf("%f, %f\r\n",id,iq);
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
 		//printf("%f, %f, %f, %d\r\n", ia,ib,ic,0);
-		printf("%f,%f\r\n", iq,iq_error);
+		printf("%f,%f,%f\r\n", iq,iq_error,iq_error_sum);
 		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
