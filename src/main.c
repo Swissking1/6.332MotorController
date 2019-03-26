@@ -21,8 +21,8 @@ float _offset = 0.8;
 uint32_t adc_buf[2];
 uint32_t curr_fb1;
 uint32_t curr_fb2;
-uint32_t curr_offset1=1935;
-uint32_t curr_offset2=1937;
+float curr_offset1=1951;
+float curr_offset2=1953;
 
 float ia;
 float ib;
@@ -30,15 +30,15 @@ float ic;
 
 float id;
 float iq;
-float iq_set=1600;
+float iq_set=1500;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.000;
-float Kp=.005;
+float Ki=0.0;
+float Kp=0.03;
 
 //Voltage variables
 float vq_set;
@@ -81,12 +81,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 
 	HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing ADCs	
 
-	ia=(float)curr_fb1-(float)curr_offset1; //Should be around 1.558V
-	ic=(float)curr_fb2-(float)curr_offset2;
+	ia=(float)curr_fb1-curr_offset1; //Should be around 1.558V
+	ic=(float)curr_fb2-curr_offset2;
 	ib=-ia-ic;
 	
 	theta=Get_Elec_Pos();
 	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
+	iq*=-1;id*=-1;
 
 	iq_error = iq_set-iq; //Error term
 	iq_error_sum+=iq_error*.00024; //integral term with dt = .00024, period scaled by clock
@@ -144,15 +145,21 @@ int main(void) {
 	HAL_ADC_Start(&hadc1);
 	printf("ADC Started\r\n");
 	printf("Successful initialization\r\n");
+	static uint32_t time_check = 0;
+
 	HAL_TIM_Base_Start_IT(&htim1); //Turn on Interrupt for the PWM TImer 
 	
 	/**Main loop**/
 	while(1) {
-		printf("%f, %f\r\n",id,iq);
-		//printf("%f\r\n",vq_set);
+		if(HAL_GetTick()-time_check>2000){
+			time_check= HAL_GetTick();
+			iq_set*=-1;
+		}
+		//printf("%f, %f\r\n",id,iq);
+		//printf("%f\r\n",iq,100*Get_Elec_Pos());
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
-		//printf("%f %f %f %d\r\n", ia,ib,ic,0);
-		//printf("%f %f %f\r\n", iq,iq_error,vq_set);
+		//printf("%f, %f, %f, %d\r\n", ia,ib,ic,0);
+		printf("%f,%f\r\n", iq,iq_error,vq_set);
 		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
