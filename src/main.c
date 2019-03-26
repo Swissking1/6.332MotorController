@@ -30,7 +30,7 @@ float ic;
 
 float id;
 float iq;
-float iq_set=800;
+float iq_set=1600;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
@@ -38,7 +38,7 @@ float id_error;
 float id_error_sum=0;
 
 float Ki=0.000;
-float Kp=.02;
+float Kp=.005;
 
 //Voltage variables
 float vq_set;
@@ -77,7 +77,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	HAL_GPIO_WritePin(GPIO(LED2),1); //GPIO for timing ADCs	
 
 	adc_read(PHASE_A_CURRENT,&curr_fb1); //Read ADC for phase A
-	adc_read(PHASE_C_CURRENT,&curr_fb2); //Read ADC for phase B
+	adc_read(PHASE_C_CURRENT,&curr_fb2); //Read ADC for phase C
 
 	HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing ADCs	
 
@@ -89,11 +89,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
 
 	iq_error = iq_set-iq; //Error term
-	iq_error_sum+=iq_error*.0002; //integral term with dt = .0002 <> 5 kHz
+	iq_error_sum+=iq_error*.00024; //integral term with dt = .00024, period scaled by clock
 	vq_set=iq_error*Kp+iq_error_sum*Ki; //PID for VQ
 
 	id_error = id_set-id;
-	id_error_sum+=id_error*.0002; //.0002 <-> 5 kHz switching freq.
+	id_error_sum+=id_error*.00024; //dt determined for PWM freq
 	vd_set=id_error*Kp+id_error_sum*Ki;
 
 	abc(vd_set,vq_set,&v_a,&v_b,&v_c,theta); //Invert DQ to get voltage commands
@@ -148,13 +148,13 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
-		//printf("%f %f\r\n",id,iq);
-		//SLO_PRINTF("%f\r\n",vq_set);
+		printf("%f, %f\r\n",id,iq);
+		//printf("%f\r\n",vq_set);
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
-		printf("%f %f %d\r\n", ia,ic,0);
-		//printf("%f\r\n", iq);
-		//printf("%f %f %f\r\n",v_a,v_b,v_c);
-		//printf("%lu %lu\r\n",curr_fb1,curr_fb3);
+		//printf("%f %f %f %d\r\n", ia,ib,ic,0);
+		//printf("%f %f %f\r\n", iq,iq_error,vq_set);
+		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
+		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
 		//HAL_Delay(200);
 	}
