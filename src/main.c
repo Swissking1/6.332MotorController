@@ -15,7 +15,8 @@ static void MX_TIM2_Init(void);
 // Encoder variables
 int _CPR = 4096; //CPR = counts per revolution
 int _ppairs = 7;
-float _offset = 0.8;
+float _offset = 1.0;
+//float _offset = 0.8;
 
 //Current variables
 uint32_t adc_buf[2];
@@ -151,7 +152,7 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
-		if(HAL_GetTick()-time_check>2000){
+		if(HAL_GetTick()-time_check>4000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
 		}
@@ -159,7 +160,7 @@ int main(void) {
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
 		//printf("%f, %f, %f, %d\r\n", ia,ib,ic,0);
-		printf("%f,%f\r\n", iq,iq_error,vq_set);
+		printf("%f,%f\r\n", iq,iq_error);
 		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
