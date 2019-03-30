@@ -31,15 +31,15 @@ float ic;
 
 float id;
 float iq;
-float iq_set=1300;
+float iq_set=800;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
-float Ki=0.00;
-float Kp=0.03;
+float Ki=0.01;
+float Kp=0.02;
 
 //Voltage variables
 float vq_set;
@@ -102,6 +102,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	v_a+=50;
 	v_b+=50;
 	v_c+=50;
+	if(v_a>100)v_a=100;
+	if(v_b>100)v_b=100;
+	if(v_c>100)v_c=100; //Capping PWM commands
+
 	Set_PWM_Duty_Cycle((uint8_t)v_a,1);
 	Set_PWM_Duty_Cycle((uint8_t)v_b,2);
 	Set_PWM_Duty_Cycle((uint8_t)v_c,3);
@@ -151,16 +155,18 @@ int main(void) {
 	/**Main loop**/
 	while(1) {
 			
-		if(HAL_GetTick()-time_check>4000){
+		if(HAL_GetTick()-time_check>10000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
+			iq_error_sum=0;id_error_sum=0;
 		}
 			
+		printf("%f\r\n",v_a);
 		//printf("%f, %f\r\n",id,iq);
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
-		printf("%f,%f,%f,%d\r\n", ia*.00122070,ib*.00122070,ic*.00122070,0);
-		//printf("%f,%f,%f\r\n", iq,iq_error,iq_error_sum);
+		//printf("%f,%f,%f,%d\r\n", ia*.00122070,ib*.00122070,ic*.00122070,0);
+		//printf("%f,%f,%f,%f,%d\r\n", iq,iq_error,iq_set,-iq_set,0);
 		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
