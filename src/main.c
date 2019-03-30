@@ -31,12 +31,16 @@ float ic;
 
 float id;
 float iq;
-float iq_set=800;
+float iq_set=1200;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
+
+float iq_vec[10]={0,0,0,0,0,0,0,0,0,0};
+float sum=0;
+int vec_index=0;
 
 float Ki=0.01;
 float Kp=0.02;
@@ -88,6 +92,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	theta=Get_Elec_Pos();
 	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
 	iq*=-1;id*=-1;
+
+	sum-=iq_vec[vec_index]; //Moving average for iq
+	iq_vec[vec_index]=iq;
+	sum+=iq;
+	vec_index++;
+	if(vec_index>9)vec_index=0;
+	iq=sum/10;
 
 	iq_error = iq_set-iq; //Error term
 	iq_error_sum+=iq_error*.00024; //integral term with dt = .00024, period scaled by clock
@@ -155,18 +166,18 @@ int main(void) {
 	/**Main loop**/
 	while(1) {
 			
-		if(HAL_GetTick()-time_check>10000){
+		if(HAL_GetTick()-time_check>15000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
 			iq_error_sum=0;id_error_sum=0;
 		}
 			
-		printf("%f\r\n",v_a);
+		//printf("%f\r\n",v_a);
 		//printf("%f, %f\r\n",id,iq);
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
 		//printf("%f %f\r\n", iq,iq_set,id,id_set);
 		//printf("%f,%f,%f,%d\r\n", ia*.00122070,ib*.00122070,ic*.00122070,0);
-		//printf("%f,%f,%f,%f,%d\r\n", iq,iq_error,iq_set,-iq_set,0);
+		printf("%f,%f,%f,%f,%d\r\n", iq,iq_error,iq_set,-iq_set,0);
 		//printf("%f, %f, %f\r\n",v_a,v_b,v_c);
 		//printf("%lu %lu\r\n",curr_fb1,curr_fb2);
 		//printf("%f\r\n", Get_Elec_Pos());
