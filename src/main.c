@@ -31,19 +31,22 @@ float ic;
 
 float id;
 float iq;
-float iq_set=1200;
+float iq_set=200;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
 float id_error;
 float id_error_sum=0;
 
+//Moving average
 float iq_vec[10]={0,0,0,0,0,0,0,0,0,0};
-float sum=0;
+float id_vec[10]={0,0,0,0,0,0,0,0,0,0};
+float iq_sum=0;
+float id_sum=0;
 int vec_index=0;
 
-float Ki=0.01;
-float Kp=0.02;
+float Ki=0.14;
+float Kp=0.04;
 
 //Voltage variables
 float vq_set;
@@ -93,12 +96,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
 	iq*=-1;id*=-1;
 
-	sum-=iq_vec[vec_index]; //Moving average for iq
+	iq_sum-=iq_vec[vec_index]; //Moving average for iq
 	iq_vec[vec_index]=iq;
-	sum+=iq;
+	iq_sum+=iq;
 	vec_index++;
 	if(vec_index>9)vec_index=0;
-	iq=sum/10;
+	iq=iq_sum/10;
+
+	id_sum-=id_vec[vec_index]; //Moving average for id
+	id_vec[vec_index]=id;
+	id_sum+=id;
+	vec_index++;
+	if(vec_index>9)vec_index=0;
+	id=id_sum/10;
+
 
 	iq_error = iq_set-iq; //Error term
 	iq_error_sum+=iq_error*.00024; //integral term with dt = .00024, period scaled by clock
@@ -165,13 +176,13 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
-			
+		/*	
 		if(HAL_GetTick()-time_check>15000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
 			iq_error_sum=0;id_error_sum=0;
 		}
-			
+		*/	
 		//printf("%f\r\n",v_a);
 		//printf("%f, %f\r\n",id,iq);
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
