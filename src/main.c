@@ -31,7 +31,7 @@ float ic;
 
 float id;
 float iq;
-float iq_set=200;
+float iq_set=1200;
 float id_set=0;
 float iq_error;
 float iq_error_sum=0;
@@ -89,12 +89,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim1){//Interrupt Handler
 	//HAL_GPIO_WritePin(GPIO(LED2),0); //GPIO for timing ADCs	
 
 	ia=(float)curr_fb1-curr_offset1; //Should be around 1.558V
-	ic=(float)curr_fb2-curr_offset2;
+	ic=(float)curr_fb2-curr_offset2; 
+	ia*=-1;ic*=-1;//Negative sign is b/c convention, positive current is current into the motor
 	ib=-ia-ic;
 	
 	theta=Get_Elec_Pos();
 	dq0(ia,ib,ic,&id,&iq,theta); //Do DQ transform
-	iq*=-1;id*=-1;
 
 	iq_sum-=iq_vec[vec_index]; //Moving average for iq
 	iq_vec[vec_index]=iq;
@@ -176,13 +176,13 @@ int main(void) {
 	
 	/**Main loop**/
 	while(1) {
-		/*	
+			
 		if(HAL_GetTick()-time_check>15000){
 			time_check= HAL_GetTick();
 			iq_set*=-1;
 			iq_error_sum=0;id_error_sum=0;
 		}
-		*/	
+			
 		//printf("%f\r\n",v_a);
 		//printf("%f, %f\r\n",id,iq);
 		//printf("%f\r\n",iq,100*Get_Elec_Pos());
